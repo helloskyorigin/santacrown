@@ -16,3 +16,37 @@
 @media(max-width:720px){.demo-podium-label{top:0;left:50%;font-size:10px;padding:5px 9px}.r-mobile-link{display:block}.r-person{overflow:hidden}.board-row{grid-template-columns:28px minmax(0,1fr) 78px;gap:7px}.r-amount{font-size:15px}.entry{scroll-margin:30px}.section-heading{flex-wrap:wrap}.board-badge{margin-left:auto}}
 @media(prefers-reduced-motion:reduce){.snow-paused .flake{animation-play-state:paused}}
 .snow-paused .flake{animation-play-state:paused}
+
+/* Final UX refinement: bring Santa + podium into view and improve the winter magic. */
+.skip-link{position:fixed;left:12px;top:-80px;z-index:300;background:#fff;border:2px solid #b92739;border-radius:12px;padding:12px 16px;color:#812334;font-weight:800;box-shadow:0 10px 24px #082c5060}
+.skip-link:focus{top:10px}
+.winter{background:radial-gradient(ellipse at 83% 22%,#67d7e174,transparent 27%),radial-gradient(ellipse at 15% 66%,#89c4ff37,transparent 40%),linear-gradient(160deg,#183361 0%,#2c6099 51%,#7cbfea 89%,#c7eaff);padding-bottom:108px}
+.winter:before{background-size:118px 98px,173px 147px;opacity:.52}
+.nav{height:76px}.hero-copy{padding-top:8px}
+.hero-copy h1{font-size:clamp(45px,5.25vw,72px);margin:10px 0 9px;line-height:1.025}
+.hero-copy p{margin-bottom:15px;line-height:1.46}
+.hero-cta{padding:12px 24px}
+.stage{margin-top:37px;grid-template-columns:145px minmax(470px,1fr) 310px;min-height:390px}
+.santa-art{transform:translate(-49px,-71px)}
+.santa-art img{display:block;height:auto;-webkit-mask-image:radial-gradient(ellipse at 51% 45%,#000 56%,transparent 80%);mask-image:radial-gradient(ellipse at 51% 45%,#000 56%,transparent 80%)}
+.podium{padding-bottom:25px}
+.entry-title p{color:#79686d;font-size:12px}.payment-note{color:#826168;font-size:11px;line-height:1.4}
+.entry input{min-height:44px}.entry label{font-size:12px;color:#674349}
+.board-badge{color:#2b6389}.sample-note{color:#6a5128}.r-mobile-link{color:#315d8a}
+.board-row{min-height:60px}
+.navlinks a,.footer-links button,.board-bottom button{transition:color .15s ease}
+.navlinks a:hover{color:#ffe1a4;text-decoration:underline;text-underline-offset:5px}
+.footer-links button:hover{color:#9c263b}
+.entry .pay-button:focus-visible,.hero-cta:focus-visible,.nav-join:focus-visible{outline:3px solid #fff;outline-offset:4px}
+.board .r-amount{font-variant-numeric:tabular-nums}
+.modal-overlay .modal{overscroll-behavior:contain}
+.modal-overlay.open .modal:focus-within{outline:none}
+@media(max-width:1170px) and (min-width:991px){.stage{grid-template-columns:100px minmax(390px,1fr) 285px}.santa-art{transform:translate(-50px,-57px)}}
+@media(max-width:990px) and (min-width:721px){.stage{grid-template-columns:1fr 310px;margin-top:55px}.santa-art{top:-75px;transform:none}.santa-art img{width:190px}.podium{padding-top:125px}}
+@media(max-width:720px){.nav{height:69px}.hero-copy{padding-top:11px}.hero-copy h1{font-size:clamp(39px,10vw,53px);line-height:1.02;margin:10px 0 10px}.hero-copy p{font-size:13px;margin-bottom:14px}.hero-cta{padding:12px 18px}.stage{margin-top:59px;gap:26px}.santa-art{top:-41px;left:-14px;transform:none}.santa-art img{width:145px}.podium{padding:75px 0 3px}.demo-podium-label{top:3px}.entry{scroll-margin:calc(15px + env(safe-area-inset-top,0px))}.mobile-join{bottom:calc(10px + env(safe-area-inset-bottom,0px))}.mobile-join:focus-visible{outline:3px solid #fff;outline-offset:3px}.section-heading h2{font-size:22px}.r-mobile-link{font-size:10px}.payment-note{font-size:11px}}
+@media(max-width:359px){.page-width{width:calc(100% - 22px)}.brand{font-size:22px}.nav-join{padding:9px 10px;font-size:11px}.hero-copy h1{font-size:39px}.podium-card h3{font-size:11px}.first h3{font-size:15px}.r-person .av{height:28px;width:28px}.board{padding:17px 10px}.modal{padding:24px 16px}}
+@media(prefers-reduced-motion:reduce){.navlinks a,.footer-links button,.board-bottom button{transition:none}}
+/* Keep the #1 throne visible without requiring a large desktop scroll. */
+@media(min-width:991px){.stage>.podium{align-self:start;margin-top:75px}}
+@media(min-width:721px) and (max-width:990px){.stage>.podium{align-self:start;margin-top:0}}
+@media(max-width:720px){.stage>.podium{align-self:stretch;margin-top:0}}
