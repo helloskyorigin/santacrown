@@ -52,3 +52,21 @@ The preview is not a working payment processor integration; it is a development 
 - `tests/logic.test.cjs` — automated unit tests
 - `tests/ui_smoke.py` — optional Playwright UI smoke tests
 - `docs/LAUNCH_CHECKLIST.md` — production readiness audit
+
+## Final frontend audit (November 14, 2026)
+
+- Refined hero/podium composition, improved Santa artwork blending, stronger text contrast, and mobile spacing.
+- Added keyboard-accessible skip link and improved mobile sticky CTA behavior when interacting with the form.
+- The amount entry uses decimal-friendly text input and **integer cents** validation. Amounts like `$19.99` work.
+- Public URL normalization rejects unsafe, internal and reserved example hosts. Public links identify entries, but do not confer editing or reward claim rights.
+- Fixed the visual test harness to embed the **actual `santa.webp`**, rather than a nonexistent PNG, and assert the image decodes.
+- Extended UI smoke tests to eight widths (320–1920 px), form errors, price chips, keyboard focus wrapping, and screenshots.
+
+Run the frontend checks:
+
+```bash
+node --test tests/logic.test.cjs
+python tests/ui_smoke.py   # requires playwright and Chromium
+```
+
+This is **not a payment-ready release**. Live database, Dodo integration, merchant approval and complete legal policies remain explicit launch blockers.
