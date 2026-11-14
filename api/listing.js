@@ -9,7 +9,7 @@ module.exports=async function handler(req,res){
   const url=canonicalURL(input);
   if(!url)return json(res,400,{code:'INVALID_LINK'});
   try{
-    const rows=await rest('GET','sc_totals?select=name,link,total_cents&link=eq.'+encodeURIComponent(url)+'&limit=1');
+    const rows=await rest('GET','sc_public_totals?select=name,link,total_cents&link=eq.'+encodeURIComponent(url)+'&limit=1');
     const found=rows?.[0];
     if(!found||!Number.isSafeInteger(found.total_cents)||found.total_cents<100)return json(res,200,{entry:null});
     return json(res,200,{entry:{name:found.name,link:found.link,total_cents:found.total_cents}});

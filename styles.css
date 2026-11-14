@@ -27,3 +27,25 @@
   .checkout-state{font-size:9px;margin-top:8px}
   .north-world{padding-bottom:112px;min-height:0}
 }
+
+/* v6 reliability controls; intentionally lightweight for mobile. */
+.board-controls{display:flex;align-items:center;justify-content:flex-end;gap:8px;flex-wrap:wrap}
+.board-refresh{border:1px solid #bed5e7;color:#316285;background:#f2f9ff;border-radius:999px;font-size:11px;font-weight:800;padding:8px 12px;white-space:nowrap}
+.board-refresh:hover{background:#dfedfa}.board-refresh:disabled{opacity:.65}
+.board-updated{text-align:center;color:#617b96;font-size:11px;margin:6px 0 0}
+.board-updated.offline{color:#9d3342}.board-updated.ready{color:#3b7c66}
+.rank-challenges:not([hidden]){display:flex;gap:8px;margin-top:10px}
+.rank-challenges button{flex:1;min-width:0;border:1px solid #edc287;border-radius:11px;background:#fff1d7;color:#833f30;padding:9px 7px;font-size:11px;font-weight:900}
+.rank-challenges button:hover{background:#ffe4ad}
+.checkout-consent:not([hidden]){display:flex;gap:9px;align-items:flex-start;font-size:11px;line-height:1.5;color:#633e42;margin:15px 0 5px}
+.checkout-consent input{margin-top:3px;flex-shrink:0;accent-color:#bd283f}
+.checkout-consent a{text-decoration:underline;color:#b2233c}
+.board-row .leader-name{overflow-wrap:anywhere}
+@media(max-width:680px){.board-controls{flex-direction:column;align-items:flex-end;gap:5px}.board-refresh{font-size:10px;padding:5px 9px}.board-heading{align-items:flex-start}.board-updated{font-size:10px}}
+@media(max-width:680px){
+  .board-row{grid-auto-rows:auto;row-gap:3px}
+  .board-row .rank-num{grid-column:1;grid-row:1 / span 2}
+  .board-row .leader-name{grid-column:2;grid-row:1;min-width:0}
+  .board-row .leader-url{display:block;grid-column:2;grid-row:2;font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .board-row .leader-total{grid-column:3;grid-row:1 / span 2}
+}

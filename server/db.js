@@ -31,4 +31,10 @@ async function leaderboard(){
   if(!Array.isArray(rows))throw Error('INVALID_DB_RESPONSE');
   return rows;
 }
-module.exports={rpc,leaderboard,settings,rest};
+async function schemaReady(){
+  // Verifies that the mandatory moderation/public-listing migration was applied.
+  const rows=await rest('GET','sc_public_totals?select=link&limit=1');
+  if(!Array.isArray(rows))throw Error('REQUIRED_MIGRATION_MISSING');
+  return true;
+}
+module.exports={rpc,leaderboard,settings,rest,schemaReady};

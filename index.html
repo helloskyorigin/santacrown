@@ -15,9 +15,9 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,600;9..144,700;9..144,800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/styles.css?v=4">
+  <link rel="stylesheet" href="/styles.css?v=6">
   <script src="/lib.js" defer></script>
-  <script src="/app.js?v=4" defer></script>
+  <script src="/app.js?v=6" defer></script>
 </head>
 <body>
 <a href="#leaderboard" class="skip-link">Skip to the leaderboard</a>
@@ -75,7 +75,12 @@
         <div class="form-field"><label for="amount">Your target total (USD)</label><div class="input-wrap"><span aria-hidden="true">$</span><input id="amount" name="amount" placeholder="Enter any amount" value="10" inputmode="decimal" autocomplete="off" maxlength="22" aria-describedby="amount-error price-estimate" required></div><div class="field-error" id="amount-error"></div></div>
         <div class="quick-amounts" role="group" aria-label="Quick target amounts"><button type="button" data-amount="5">$5</button><button type="button" data-amount="19">$19</button><button type="button" data-amount="49">$49</button><button type="button" data-amount="149">$149</button></div>
         <div class="price-estimate" id="price-estimate" aria-live="polite">🎄 Your target total: $10.00</div>
-        <div class="projected-rank" id="projected-rank" aria-live="polite"><span aria-hidden="true">👑</span><span>Projected position: <strong>#1 if the board stays empty</strong></span></div>
+        <div class="rank-challenges" id="rank-challenges" hidden aria-label="Challenge current leaders">
+          <button type="button" id="challenge-third">🥉 Beat #3</button>
+          <button type="button" id="challenge-first">👑 Take #1</button>
+        </div>
+        <div class="projected-rank" id="projected-rank" aria-live="polite"><span aria-hidden="true">❄️</span><span>Projected rank becomes available when the leaderboard is connected.</span></div>
+        <label class="checkout-consent" id="checkout-consent" hidden><input id="consent" type="checkbox"> <span>I understand rankings can change, and I accept the <a href="/terms.html" target="_blank" rel="noopener">Terms</a> and <a href="/refunds.html" target="_blank" rel="noopener">Refund Policy</a>.</span></label>
         <button class="cta form-submit" type="submit">🎅 Preview My Christmas Entry <span aria-hidden="true">→</span></button>
         <p class="checkout-state" id="checkout-state">Payments aren't open yet. Preview is free and doesn't reserve a rank.</p>
       </form>
@@ -85,10 +90,10 @@
 </div>
 <section class="leaderboard-section container" id="leaderboard" aria-labelledby="lb-title">
   <div class="snow-card">
-    <div class="board-heading"><div><span class="mini-label">🎄 LIVE CHRISTMAS RANKING</span><h2 id="lb-title">Santa's <em>Leaderboard</em></h2></div><span class="board-indicator" id="board-indicator">No paid entries</span></div>
+    <div class="board-heading"><div><span class="mini-label">🎄 CHRISTMAS LEADERBOARD</span><h2 id="lb-title">Santa's <em>Leaderboard</em></h2></div><div class="board-controls"><span class="board-indicator" id="board-indicator">Checking leaderboard</span><button type="button" class="board-refresh" id="refresh-board" aria-label="Refresh live leaderboard">↻ Refresh</button></div></div>
     <div class="board-head" aria-hidden="true"><span>#</span><span>Participant</span><span>Link</span><span>Total (USD)</span></div>
     <div id="leaderboard-list" aria-live="polite"><div class="empty-board"><span aria-hidden="true">🎁</span><strong>The first gift hasn't arrived yet!</strong><p>When payments are enabled and verified, real participants will appear here. No invented names, totals or rankings.</p></div></div>
-    <p class="board-footnote" id="board-footnote">Only confirmed, qualifying payments will count toward rankings when this event opens.</p>
+    <p class="board-footnote" id="board-footnote">Only confirmed, qualifying payments count toward rankings.</p><p class="board-updated" id="board-updated" role="status" aria-live="polite">Connecting to the leaderboard…</p>
   </div>
 </section>
 <section class="how-section container" id="how" aria-labelledby="how-title"><span class="mini-label">✨ THREE LITTLE STEPS</span><h2 id="how-title">As easy as unwrapping a gift.</h2><div class="feature-grid"><article><div class="feature-icon">🔗</div><h3>1. Add your link</h3><p>Use your website, creator page or social profile. No SantaCrown account required.</p></article><article><div class="feature-icon">🎁</div><h3>2. Choose a target</h3><p>Pick a target total. A future paid entry will show the exact payable difference before checkout.</p></article><article><div class="feature-icon">👑</div><h3>3. Chase the crown</h3><p>When the event opens, verified cumulative totals determine the leaderboard positions.</p></article></div></section>

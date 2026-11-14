@@ -2,7 +2,7 @@
 const crypto=require('node:crypto');
 const {canonicalURL,parseUSD}=require('../lib');
 const {allow,json,bodyJSON}=require('../server/http');
-const {rpc}=require('../server/db');
+const {rpc,schemaReady}=require('../server/db');
 const {createSession}=require('../server/dodo');
 const {canCharge,siteOrigin}=require('../server/config');
 module.exports=async function handler(req,res){
@@ -14,6 +14,7 @@ module.exports=async function handler(req,res){
   if(origin!==site)return json(res,403,{code:'ORIGIN_NOT_ALLOWED'});
   let body;
   try{body=bodyJSON(req)}catch{return json(res,400,{code:'INVALID_BODY'})}
+  if(body.terms_accepted!==true)return json(res,400,{code:'TERMS_REQUIRED',message:'Please read and accept the Terms and Refund Policy.'});
   const name=typeof body.name==='string'?body.name.trim():'';
   const link=canonicalURL(body.link);
   const target=parseUSD(body.target_amount);
@@ -22,10 +23,14 @@ module.exports=async function handler(req,res){
   const ip=String(req.headers['x-forwarded-for']||req.headers['x-real-ip']||'unknown').split(',')[0].trim().slice(0,100);
   const salt=process.env.SANTACROWN_RATE_SALT;
   const rateTag=crypto.createHash('sha256').update(salt+':'+ip).digest('hex');
+  // If db/002_visibility.sql is missing, don't accept any new checkout.
+  try { await schemaReady(); }
+  catch(e) { console.error('SantaCrown schema not ready:',e.message); return json(res,503,{code:'DATABASE_NOT_READY'}); }
   let intent;
   try{
     intent=await rpc('sc_prepare_checkout',{p_link:link,p_name:name,p_target_cents:target,p_rate_tag:rateTag});
   }catch(e){
+    if(e.message.includes('LISTING_RESTRICTED'))return json(res,403,{code:'LISTING_RESTRICTED',message:'This listing cannot accept additional contributions. Contact support.'});
     if(e.message.includes('TARGET_TOO_LOW'))return json(res,409,{code:'TARGET_CHANGED',message:'This listing has moved up. Refresh the board and choose a higher target.'});
     if(e.message.includes('PROCESSOR_AMOUNT_LIMIT'))return json(res,400,{code:'AMOUNT_TOO_HIGH',message:'This amount exceeds the processor transaction limit.'});
     if(e.message.includes('RATE_LIMIT'))return json(res,429,{code:'TOO_MANY_ATTEMPTS'});

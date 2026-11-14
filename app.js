@@ -22,6 +22,17 @@
   const formSubmit = document.querySelector('.form-submit');
   let focusedBeforeDialog = null;
   let toastTimer;
+  let leaderboardSignature = '';
+  let lastVerifiedAt = 0;
+  let pollTimer = null;
+  let activeRequest = null;
+  let consecutiveErrors = 0;
+  const refreshButton = $('#refresh-board');
+  const refreshLabel = $('#board-updated');
+  const challenges = $('#rank-challenges');
+  const consentWrap = $('#checkout-consent');
+  const consentInput = $('#consent');
+  const timeLabel = time => new Date(time).toLocaleTimeString(undefined, { hour:'numeric', minute:'2-digit' });
 
   const element = (tag, content, className) => {
     const el = document.createElement(tag);
@@ -76,7 +87,10 @@
     const cents = parseUSD(amountInput.value);
     const listing = currentListing();
     const existing = listing?.total_cents || 0;
-    if (cents === null) {
+    if (!boardAvailable) {
+      const message = cents === null ? 'Enter a valid target amount.' : 'Reliable rank estimates open when the verified leaderboard is connected.';
+      projected.replaceChildren(element('span','❄️'),element('span',message));
+    } else if (cents === null) {
       quote.textContent = '🎁 Enter a valid amount of at least $1.';
       projected.replaceChildren(element('span', '❄️'), element('span', 'Your future position will appear here.'));
     } else {
@@ -120,6 +134,22 @@
     amountInput.value = button.dataset.amount;
     updateEstimate();
   }));
+  function updateChallenges() {
+    challenges.hidden = !boardAvailable || entries.length === 0;
+    $('#challenge-third').disabled = entries.length < 3;
+    $('#challenge-first').disabled = entries.length < 1;
+  }
+  function chooseChallenge(position) {
+    if (!boardAvailable || entries.length < position) return;
+    // A target must exceed the current verified rival's balance by $1.
+    const target = entries[position - 1].total_cents + 100;
+    if (!Number.isSafeInteger(target)) return;
+    amountInput.value = (target / 100).toFixed(2);
+    updateEstimate();
+    goJoin();
+  }
+  $('#challenge-third').addEventListener('click', () => chooseChallenge(3));
+  $('#challenge-first').addEventListener('click', () => chooseChallenge(1));
   function openDialog() {
     focusedBeforeDialog = document.activeElement;
     dialog.hidden = false;
@@ -170,6 +200,10 @@
       setError('amount', 'Increase the current listing total by at least $1.'); firstInvalid ||= amountInput;
     }
     if (firstInvalid) { firstInvalid.focus(); return; }
+    if (paymentsEnabled && boardAvailable && !consentInput.checked) {
+      toast('Please read and accept the Terms and Refund Policy before checkout.');
+      consentInput.focus(); return;
+    }
     if (paymentsEnabled && boardAvailable) {
       if (checkoutBusy) return;
       checkoutBusy = true;
@@ -180,7 +214,7 @@
           method: 'POST',
           headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
           credentials: 'same-origin',
-          body: JSON.stringify({ name, link, target_amount: amountInput.value.trim() })
+          body: JSON.stringify({ name, link, target_amount: amountInput.value.trim(), terms_accepted: consentInput.checked })
         });
         const data = await response.json();
         if (!response.ok || !data.checkoutUrl) {
@@ -209,12 +243,12 @@
       }
       return;
     }
-    const rank = projection(cents, listing);
+    const rank = boardAvailable ? projection(cents, listing) : null;
     dialogContent.replaceChildren();
     const header = element('h2', '🎄 Your Christmas entry preview'); header.id = 'dialog-title';
     dialogContent.append(header, element('p', 'Here is how your Christmas card can look. This does not create a public entry or charge you.'));
     const card = element('div', undefined, 'preview-card');
-    card.append(element('strong', '👑 ' + name), safeExternalLink(link, displayURL(link), 'preview-link'), element('div', usd(cents) + ' target · Projected #' + rank, 'preview-amount'));
+    card.append(element('strong', '👑 ' + name), safeExternalLink(link, displayURL(link), 'preview-link'), element('div', usd(cents) + ' target' + (rank ? ' · Estimated #' + rank : ' · No live rank yet'), 'preview-amount'));
     dialogContent.append(card, element('p', 'Payment collection has not opened. Rankings will only update after verified payments when the service is approved and launched.'));
     const actions = element('div', undefined, 'modal-actions');
     const download = element('button', '🎁 Download Christmas Card');
@@ -230,6 +264,8 @@
     formSubmit.replaceChildren(document.createTextNode(
       paymentsEnabled && boardAvailable ? '🎁 Continue to Secure Payment →' : '🎅 Preview My Christmas Entry →'
     ));
+    consentWrap.hidden = !(paymentsEnabled && boardAvailable);
+    if (consentWrap.hidden) consentInput.checked = false;
     const label = $('#checkout-state');
     label.textContent = paymentsEnabled && boardAvailable
       ? 'Your exact payable amount is confirmed server-side. Only verified payments change rankings.'
@@ -269,7 +305,7 @@
       });
       $('#board-indicator').textContent = 'No paid entries';
       $('#board-status').textContent = "❄️ Santa's throne is waiting for its first legend";
-      return;
+      updateChallenges(); return;
     }
     list.replaceChildren();
     const ranked = entries.slice(0, 100);
@@ -294,38 +330,91 @@
     });
     $('#board-indicator').textContent = entries.length + (entries.length === 1 ? ' verified entry' : ' verified entries');
     $('#board-status').textContent = '👑 Current throne holder: ' + entries[0].name;
+    updateChallenges();
   }
-  async function fetchLeaderboard() {
-    try {
-      const r = await fetch('/api/leaderboard', {headers: {'Accept':'application/json'}, cache:'no-store'});
-      if (!r.ok) throw new Error('Leaderboard is unavailable');
-      const data = await r.json();
-      if (!Array.isArray(data.entries)) throw new Error('Unexpected response');
-      boardAvailable = data.status === 'ready';
-      entries = data.entries.filter(e => typeof e.name === 'string' && typeof e.link === 'string' &&
-        Number.isSafeInteger(e.total_cents) && e.total_cents >= 100 &&
-        Number.isSafeInteger(e.rank) && canonicalURL(e.link) === e.link);
-      // Server's SQL row_number() determines final ordering, including stable ties.
-      entries.sort((a,b) => a.rank-b.rank);
-      paymentsEnabled = boardAvailable && Boolean(data.paymentsEnabled);
-      renderLeaderboard();
-      if (!boardAvailable) {
-        $('#board-indicator').textContent = 'Preparing launch';
-        $('#board-status').textContent = '❄️ SantaCrown will open after the secure leaderboard is ready';
+  async function fetchLeaderboard(options = {}) {
+    if (activeRequest) return activeRequest;
+    const run = async () => {
+      const controller = new AbortController();
+      const timeout = window.setTimeout(() => controller.abort(), 10000);
+      refreshButton.disabled = true;
+      refreshButton.textContent = '↻ Checking…';
+      try {
+        const r = await fetch('/api/leaderboard', {
+          headers: {Accept:'application/json'}, cache:'no-store', signal:controller.signal
+        });
+        if (!r.ok) throw new Error('Leaderboard is unavailable');
+        const data = await r.json();
+        if (!Array.isArray(data.entries)) throw new Error('Unexpected leaderboard response');
+        const newEntries = data.entries.filter(e => typeof e.name === 'string' && typeof e.link === 'string' &&
+          Number.isSafeInteger(e.total_cents) && e.total_cents >= 100 &&
+          Number.isSafeInteger(e.rank) && canonicalURL(e.link) === e.link)
+          .sort((a,b) => a.rank - b.rank);
+        const ready = data.status === 'ready';
+        const nextSignature = JSON.stringify([ready, newEntries]);
+        entries = newEntries;
+        boardAvailable = ready;
+        paymentsEnabled = ready && Boolean(data.paymentsEnabled);
+        consecutiveErrors = 0;
+        lastVerifiedAt = Date.now();
+        if (nextSignature !== leaderboardSignature) {
+          leaderboardSignature = nextSignature;
+          renderLeaderboard();
+        }
+        if (!ready) {
+          $('#board-indicator').textContent = 'Preparing launch';
+          $('#board-status').textContent = '❄️ SantaCrown opens after the secure leaderboard is ready';
+          $('#board-footnote').textContent = 'Checkout stays closed until merchant and database setup are verified.';
+        } else {
+          $('#board-footnote').textContent = 'Amounts reflect verified net USD payments, adjusted for refunds and disputes. Rankings can change.';
+        }
+        refreshLabel.className = 'board-updated' + (ready ? ' ready' : '');
+        refreshLabel.textContent = ready
+          ? '✓ Refreshed ' + timeLabel(lastVerifiedAt) + ' · Checking for changes automatically'
+          : 'Pre-launch · Waiting for database setup';
+      } catch (error) {
+        consecutiveErrors++;
+        boardAvailable = false;
+        paymentsEnabled = false;
+        $('#board-indicator').textContent = 'Connection unavailable';
+        $('#board-status').textContent = '❄️ Live ranking is temporarily unavailable';
+        refreshLabel.className = 'board-updated offline';
+        refreshLabel.textContent = lastVerifiedAt
+          ? '⚠️ Showing the last verified snapshot from ' + timeLabel(lastVerifiedAt) + ' · Rankings may have changed'
+          : '⚠️ Leaderboard cannot connect. No live ranks are being shown.';
+        if (!lastVerifiedAt || Date.now() - lastVerifiedAt > 5 * 60 * 1000) {
+          entries = [];
+          leaderboardSignature = '';
+          const box = element('div',undefined,'empty-board');
+          box.append(element('strong','Leaderboard temporarily unavailable'),
+            element('p','Refresh to reconnect. We do not publish unverified rankings.'));
+          $('#leaderboard-list').replaceChildren(box);
+        }
+      } finally {
+        window.clearTimeout(timeout);
+        refreshButton.disabled = false;
+        refreshButton.textContent = '↻ Refresh';
+        updateChallenges();
+        updateEstimate();
+        updateCheckoutUI();
       }
-      updateEstimate();
-      updateCheckoutUI();
-    } catch (error) {
-      boardAvailable = false; paymentsEnabled = false;
-      $('#board-indicator').textContent = 'Temporarily unavailable';
-      $('#board-status').textContent = '❄️ Live ranking temporarily unavailable';
-      const box = element('div',undefined,'empty-board');
-      box.append(element('strong','Leaderboard temporarily unavailable'),
-        element('p','Please refresh later. We are not displaying unverified rankings.'));
-      $('#leaderboard-list').replaceChildren(box);
-      updateCheckoutUI();
-    }
+    };
+    activeRequest = run();
+    try { return await activeRequest; } finally { activeRequest = null; }
   }
+  function scheduleRefresh() {
+    window.clearTimeout(pollTimer);
+    if (document.hidden) return;
+    const delay = consecutiveErrors ? Math.min(90000, 15000 * (2 ** Math.min(3, consecutiveErrors))) : 25000;
+    pollTimer = window.setTimeout(async () => { await fetchLeaderboard(); scheduleRefresh(); }, delay);
+  }
+  refreshButton.addEventListener('click', async () => { await fetchLeaderboard({manual:true}); scheduleRefresh(); });
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) window.clearTimeout(pollTimer);
+    else { fetchLeaderboard().then(scheduleRefresh); }
+  });
+  window.addEventListener('online', () => fetchLeaderboard().then(scheduleRefresh));
+  window.addEventListener('pageshow', e => { if (e.persisted) fetchLeaderboard().then(scheduleRefresh); });
   const snow = $('#snowfall');
   if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
     const total = window.matchMedia('(max-width: 680px)').matches ? 20 : 46;
@@ -342,6 +431,6 @@
   }
   updateEstimate();
   updateCheckoutUI();
-  fetchLeaderboard();
-  if (location.protocol !== 'file:') window.setInterval(fetchLeaderboard, 60000);
+  if (location.protocol !== 'file:') fetchLeaderboard().then(scheduleRefresh);
+  else fetchLeaderboard();
 })();

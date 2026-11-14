@@ -36,7 +36,10 @@ test('test mode requires explicit approval; live adds a second launch gate',()=>
  assert.equal(canCharge(approved),true);
  assert.equal(canCharge({...approved,DODO_PAYMENTS_APPROVED:'false'}),false);
  assert.equal(canCharge({...approved,DODO_PAYMENTS_ENVIRONMENT:'live_mode'}),false);
- assert.equal(canCharge({...approved,DODO_PAYMENTS_ENVIRONMENT:'live_mode',SANTACROWN_LIVE_CONFIRMED:'true'}),true);
+ assert.equal(canCharge({...approved,DODO_PAYMENTS_ENVIRONMENT:'live_mode',SANTACROWN_LIVE_CONFIRMED:'true'}),false);
+ assert.equal(canCharge({...approved,DODO_PAYMENTS_ENVIRONMENT:'live_mode',SANTACROWN_LIVE_CONFIRMED:'true',
+   SANTACROWN_COMMERCIAL_TERMS_READY:'true',SANTACROWN_MERCHANT_LEGAL_NAME:'Example Seller',
+   SANTACROWN_EVENT_CUTOFF_AT:'2099-12-25T23:59:00Z'}),true);
 });
 test('checkout destination cannot redirect to attacker',()=>{
  assert.ok(goodCheckoutURL('https://checkout.dodopayments.com/session/cks_123'));
@@ -56,13 +59,14 @@ test('checkout computes charge in SQL, not browser, creates provider session wit
  const old=global.fetch,calls=[];
  global.fetch=async(url,options={})=>{
   calls.push({url:String(url),data:options.body?JSON.parse(options.body):null});
+  if(String(url).includes('sc_public_totals?select=link'))return mockReply([]);
   if(String(url).includes('rpc/sc_prepare_checkout'))return mockReply({intent_id:uuid,charge_cents:4500,target_cents:10000,current_cents:5500});
   if(String(url).includes('/checkouts'))return mockReply({session_id:'cks_1',checkout_url:'https://checkout.dodopayments.com/session/cks_1'});
   if(String(url).includes('rpc/sc_mark_checkout'))return mockReply(null);
   throw Error('Unexpected fetch '+url);
  };
  try{
-  const r=res();await checkout({method:'POST',headers:{origin,'content-type':'application/json','x-forwarded-for':'1.2.3.4'},body:{name:'Snow King',link:'https://www.youtube.com/@creator',target_amount:'100'}},r);
+  const r=res();await checkout({method:'POST',headers:{origin,'content-type':'application/json','x-forwarded-for':'1.2.3.4'},body:{name:'Snow King',link:'https://www.youtube.com/@creator',target_amount:'100',terms_accepted:true}},r);
   assert.equal(r.code,200);assert.equal(r.payload.chargeCents,4500);
   const dodo=calls.find(x=>x.url.includes('/checkouts'));
   assert.equal(dodo.data.product_cart[0].amount,4500);
@@ -75,7 +79,7 @@ test('checkout rejects wrong origin and malformed amount with no external calls'
  const old=global.fetch;global.fetch=()=>{throw Error('Should not call API')};
  try{
   let r=res();await checkout({method:'POST',headers:{origin:'https://evil.com','content-type':'application/json'},body:{}},r);assert.equal(r.code,403);
-  r=res();await checkout({method:'POST',headers:{origin,'content-type':'application/json'},body:{name:'N',link:'https://example.com',target_amount:'19.999'}},r);assert.equal(r.code,400);
+  r=res();await checkout({method:'POST',headers:{origin,'content-type':'application/json'},body:{name:'N',link:'https://example.com',target_amount:'19.999',terms_accepted:true}},r);assert.equal(r.code,400);
  }finally{global.fetch=old}
 }));
 test('webhook HMAC required; no DB call before verification',async()=>withEnv(approved,async()=>{
@@ -131,7 +135,7 @@ test('public listing lookup returns verified amount by canonical URL outside top
     const r=res();await listing({method:'GET',query:{link:'http://www.repeat.com/?utm_source=spam'},headers:{}},r);
     assert.equal(r.code,200);assert.equal(r.payload.entry.total_cents,19000);
     assert.equal(r.payload.entry.name,'First Verified Name');
-    assert.ok(seen.includes('sc_totals?'));
+    assert.ok(seen.includes('sc_public_totals?'));
   }finally{global.fetch=old}
 }));
 

@@ -7,12 +7,16 @@ function paymentsConfigured(env=process.env){
     !!(env.SUPABASE_SECRET_KEY||env.SUPABASE_SERVICE_ROLE_KEY) && !!env.SANTACROWN_RATE_SALT &&
     ['test_mode','live_mode'].includes(env.DODO_PAYMENTS_ENVIRONMENT);
 }
-function canCharge(env=process.env){
-  // Intentionally fail closed for live charges; the approval flag must be explicit.
-  return paymentsConfigured(env) && (
-    env.DODO_PAYMENTS_ENVIRONMENT==='test_mode' ||
-    (env.DODO_PAYMENTS_ENVIRONMENT==='live_mode' && env.SANTACROWN_LIVE_CONFIRMED==='true')
-  );
+function canCharge(env=process.env,now=Date.now()){
+  if(!paymentsConfigured(env)) return false;
+  if(env.DODO_PAYMENTS_ENVIRONMENT==='test_mode') return true;
+  // Real charges need separately reviewed, published commercial terms AND a future cutoff.
+  const cutoff=Date.parse(env.SANTACROWN_EVENT_CUTOFF_AT||'');
+  return env.DODO_PAYMENTS_ENVIRONMENT==='live_mode' &&
+    env.SANTACROWN_LIVE_CONFIRMED==='true' &&
+    env.SANTACROWN_COMMERCIAL_TERMS_READY==='true' &&
+    !!env.SANTACROWN_MERCHANT_LEGAL_NAME?.trim() &&
+    Number.isFinite(cutoff) && cutoff>now;
 }
 function siteOrigin(env=process.env){
   const text=env.SANTACROWN_SITE_ORIGIN||BASE;
