@@ -1,93 +1,143 @@
+/* SantaCrown v3: UI preview only. No client event or click creates a payable rank.
+   In production, totals/ranks must always come from verified server-side payments. */
 (() => {
   'use strict';
-  const $ = selector => document.querySelector(selector);
-  const $$ = selector => document.querySelectorAll(selector);
   const { canonicalURL, parseUSD, usd, differenceCents, displayURL } = window.SantaCrownUtils;
-  const sample = [
-    { name: 'Snow King', url: 'snowking.example', amount: 25000, emoji: '⛄' },
-    { name: 'Frost Elf', url: 'frostelf.example', amount: 18000, emoji: '🧝' },
-    { name: 'Gift Boss', url: 'giftboss.example', amount: 12000, emoji: '🦌' },
-    { name: 'Polar Trader', url: 'polartrader.example', amount: 11000, emoji: '🐻‍❄️' },
-    { name: 'Ginger Gain', url: 'gingergain.example', amount: 9500, emoji: '🍪' },
-    { name: 'NorthPole Hustle', url: 'northpole.example', amount: 8000, emoji: '🦌' },
-    { name: 'Merry Marketer', url: 'merry.example', amount: 6500, emoji: '🐧' },
-    { name: 'Holly Builder', url: 'holly.example', amount: 5000, emoji: '🧝' }
-  ];
-  const person = $('#person');
-  const link = $('#url');
-  const amount = $('#amount');
+  const $ = selector => document.querySelector(selector);
+  const $$ = selector => [...document.querySelectorAll(selector)];
+  const demoEntries = Object.freeze([
+    { name: 'Snow King', link: 'snowking.example', cents: 25000, emoji: '⛄' },
+    { name: 'Frost Elf', link: 'frostelf.example', cents: 18000, emoji: '🧝' },
+    { name: 'Gift Boss', link: 'giftboss.example', cents: 12000, emoji: '🦌' },
+    { name: 'Polar Trader', link: 'polartrader.example', cents: 11000, emoji: '🐻‍❄️' },
+    { name: 'Ginger Gain', link: 'gingergain.example', cents: 9500, emoji: '🍪' },
+    { name: 'NorthPole Hustle', link: 'northpole.example', cents: 8000, emoji: '🦌' },
+    { name: 'Merry Marketer', link: 'merry.example', cents: 6500, emoji: '🐧' },
+    { name: 'Holly Builder', link: 'holly.example', cents: 5000, emoji: '🧝' }
+  ]);
+  const nameInput = $('#person');
+  const linkInput = $('#url');
+  const amountInput = $('#amount');
   const quote = $('#quote');
+  const position = $('#preview-position');
+  const preview = $('#preview-rank');
   const overlay = $('#overlay');
-  const content = $('#dialog-content');
+  const dialogContent = $('#dialog-content');
   const closeButton = $('#close-modal');
   let lastFocused = null;
-  let noticeTimer = null;
-
-  const element = (tag, text, className) => {
+  let toastTimer = null;
+  let focusTimer = null;
+  const node = (tag, text, klass) => {
     const el = document.createElement(tag);
     if (text !== undefined) el.textContent = text;
-    if (className) el.className = className;
+    if (klass) el.className = klass;
     return el;
   };
-  function showError(id, message) {
-    const label = $('#' + id + '-error');
-    const field = id === 'person' ? person : id === 'url' ? link : amount;
-    label.textContent = message;
-    field.setAttribute('aria-invalid', String(!!message));
+  function rankFor(cents) {
+    if (!Number.isSafeInteger(cents) || cents < 100) return null;
+    // This is only a fictional, visitor-specific preview; tie-breaks are not promised.
+    return demoEntries.filter(entry => entry.cents >= cents).length + 1;
   }
-  function clearErrors() { ['person', 'url', 'amount'].forEach(id => showError(id, '')); }
-  function toast(message) {
-    const node = $('#toast');
-    node.textContent = message;
-    node.classList.add('open');
-    clearTimeout(noticeTimer);
-    noticeTimer = setTimeout(() => node.classList.remove('open'), 3500);
+  function showError(key, message) {
+    const input = key === 'person' ? nameInput : key === 'url' ? linkInput : amountInput;
+    const error = $('#' + key + '-error');
+    error.textContent = message;
+    input.setAttribute('aria-invalid', String(Boolean(message)));
   }
-  function goJoin() {
-    $('#join').scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'center' });
-    setTimeout(() => person.focus({ preventScroll: true }), 250);
+  function clearErrors() { ['person', 'url', 'amount'].forEach(key => showError(key, '')); }
+  function toast(text) {
+    const el = $('#toast');
+    el.textContent = text;
+    el.classList.add('open');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => el.classList.remove('open'), 3300);
   }
-  $$('[data-join]').forEach(button => button.addEventListener('click', goJoin));
+  function goJoin(focusName = true) {
+    const area = $('#join');
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    area.scrollIntoView({ behavior: reduce ? 'instant' : 'smooth', block: 'center' });
+    clearTimeout(focusTimer);
+    if (focusName) focusTimer = setTimeout(() => nameInput.focus({ preventScroll: true }), reduce ? 0 : 430);
+  }
+  $$('[data-join]').forEach(btn => btn.addEventListener('click', () => goJoin()));
+
+  // Hide the mobile CTA while the entry form is visible or in use.
+  const mobileCTA = $('.mobile-join');
+  let joinInView = false;
+  function syncSticky() {
+    mobileCTA.classList.toggle('hidden', joinInView || $('#join').contains(document.activeElement) || overlay.classList.contains('open'));
+  }
   if ('IntersectionObserver' in window) {
-    const sticky = $('.mobile-join');
-    let formVisible = false;
-    function syncSticky(){sticky.classList.toggle('hidden', formVisible || !!document.querySelector('#entry-form:focus-within'))}
-    $('#entry-form').addEventListener('focusin', syncSticky);
-    $('#entry-form').addEventListener('focusout', () => requestAnimationFrame(syncSticky));
     new IntersectionObserver(entries => {
-      formVisible = entries.some(entry => entry.isIntersecting);
+      joinInView = entries.some(e => e.isIntersecting);
       syncSticky();
-    }, { threshold: .04 }).observe($('#join'));
+    }, { threshold: 0.12 }).observe($('#join'));
   }
+  $('#entry-form').addEventListener('focusin', syncSticky);
+  $('#entry-form').addEventListener('focusout', () => requestAnimationFrame(syncSticky));
 
-  // Never use example/demo data for a real payable-difference quote.
-  function updateQuote() {
-    const cents = parseUSD(amount.value);
-    quote.textContent = cents === null
-      ? '❄️ Enter an amount of at least $1.00 (up to two decimals).'
-      : `🎁 Entry target: ${usd(cents)} · New listing: ${usd(cents)} · Existing links pay only the verified difference when checkout is live.`;
-    $$('[data-amount]').forEach(button => button.classList.toggle('selected', parseUSD(button.dataset.amount) === cents));
+  function updatePreview() {
+    const cents = parseUSD(amountInput.value);
+    const label = $('.preview-description strong');
+    const helper = $('.preview-description span');
+    const glyph = $('.preview-icon');
+    if (cents === null) {
+      label.textContent = 'Choose your spot';
+      helper.textContent = 'Enter $1 or more to see a sample ranking.';
+      glyph.textContent = '🎄';
+      position.textContent = '—';
+      quote.textContent = '🎁 Enter a target total to preview your spot.';
+    } else {
+      const rank = rankFor(cents);
+      label.textContent = rank === 1 ? 'You would take the crown!' : rank <= 3 ? 'You would reach the podium!' : 'Your example leaderboard spot';
+      helper.textContent = rank === 1 ? 'Ahead of the fictional Snow King.' : rank <= 3 ? 'A top-three position in the demo.' : `Beat fictional #3 with ${usd(12100)}.`;
+      glyph.textContent = rank === 1 ? '👑' : rank <= 3 ? '🏅' : '🎄';
+      position.textContent = '#' + rank;
+      quote.textContent = `❄️ Demo target ${usd(cents)} · Only a preview, no charge or reserved rank.`;
+    }
+    $$('.quick-amounts button').forEach(btn => btn.classList.toggle('selected', parseUSD(btn.dataset.amount) === cents));
   }
-  $$('[data-amount]').forEach(button => button.addEventListener('click', () => {
-    amount.value = button.dataset.amount;
-    updateQuote();
-    showError('amount', '');
+  amountInput.addEventListener('input', () => { updatePreview(); showError('amount', ''); });
+  linkInput.addEventListener('input', () => showError('url', ''));
+  nameInput.addEventListener('input', () => showError('person', ''));
+  $$('.quick-amounts button').forEach(btn => btn.addEventListener('click', () => {
+    amountInput.value = btn.dataset.amount;
+    updatePreview(); showError('amount', '');
   }));
-  amount.addEventListener('input', () => { updateQuote(); showError('amount', ''); });
-  link.addEventListener('input', () => showError('url', ''));
-  person.addEventListener('input', () => showError('person', ''));
+  $$('[data-target]').forEach(btn => btn.addEventListener('click', () => {
+    const targetCents = btn.dataset.target === 'gold' ? 25100 : 12100;
+    amountInput.value = (targetCents / 100).toFixed(2).replace(/\.00$/, '');
+    updatePreview();
+    showError('amount', '');
+    amountInput.focus({ preventScroll: true });
+  }));
+  $$('[data-challenge]').forEach(btn => btn.addEventListener('click', () => {
+    amountInput.value = String(Number(btn.dataset.challenge) + 1);
+    updatePreview(); showError('amount', '');
+    goJoin(false);
+    focusTimer = setTimeout(() => amountInput.focus({ preventScroll: true }), window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 430);
+  }));
 
-  // Only ranks 4+ go below the podium. All example links are deliberately inert.
   const board = $('#board-rows');
-  sample.slice(3).forEach((entry, index) => {
-    const row = element('div', undefined, 'board-row');
-    row.append(element('span', '#' + (index + 4), 'r-num'));
-    const who = element('div', undefined, 'r-person');
-    who.append(element('span', entry.emoji, 'av'));
-    const details = element('div', undefined, 'r-details');
-    details.append(element('strong', entry.name), element('span', entry.url, 'r-mobile-link'));
-    who.append(details);
-    row.append(who, element('span', entry.url, 'r-url is-sample'), element('span', usd(entry.amount), 'r-amount'));
+  demoEntries.slice(3).forEach((entry, index) => {
+    const row = node('div', undefined, 'board-row');
+    const rank = node('span', '#' + (index + 4), 'r-num');
+    const who = node('div', undefined, 'r-person');
+    const info = node('div', undefined, 'r-details');
+    info.append(node('strong', entry.name), node('span', entry.link, 'r-mobile-link'));
+    who.append(node('span', entry.emoji, 'av'), info);
+    const link = node('span', entry.link, 'r-url'); // deliberate: fictional links are not clickable
+    const amount = node('span', usd(entry.cents), 'r-amount');
+    const beat = node('button', 'Beat this ↗', 'row-boost');
+    beat.type = 'button';
+    beat.setAttribute('aria-label', `Try a target higher than ${entry.name}'s fictional total ${usd(entry.cents)}`);
+    beat.addEventListener('click', () => {
+      amountInput.value = String(entry.cents / 100 + 1);
+      updatePreview();
+      goJoin(false);
+      focusTimer = setTimeout(() => amountInput.focus({ preventScroll: true }), 420);
+    });
+    row.append(rank, who, link, amount, beat);
     board.append(row);
   });
 
@@ -96,90 +146,92 @@
     overlay.classList.add('open');
     overlay.setAttribute('aria-hidden', 'false');
     document.body.classList.add('modal-open');
-    closeButton.focus();
+    closeButton.focus(); syncSticky();
   }
-  function hideModal() {
+  function closeModal() {
     overlay.classList.remove('open');
     overlay.setAttribute('aria-hidden', 'true');
     document.body.classList.remove('modal-open');
     if (lastFocused?.isConnected) lastFocused.focus();
+    syncSticky();
   }
-  closeButton.addEventListener('click', hideModal);
-  overlay.addEventListener('click', event => { if (event.target === overlay) hideModal(); });
-  document.addEventListener('keydown', event => {
+  closeButton.addEventListener('click', closeModal);
+  overlay.addEventListener('click', e => { if (e.target === overlay) closeModal(); });
+  document.addEventListener('keydown', e => {
     if (!overlay.classList.contains('open')) return;
-    if (event.key === 'Escape') { event.preventDefault(); hideModal(); }
-    if (event.key === 'Tab') {
-      const focusables = [...overlay.querySelectorAll('button:not([disabled]),a[href],input:not([disabled])')]
-        .filter(el => el.getClientRects().length > 0);
-      if (!focusables.length) return;
-      const first = focusables[0], last = focusables.at(-1);
-      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
-      else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
-    }
+    if (e.key === 'Escape') { e.preventDefault(); closeModal(); return; }
+    if (e.key !== 'Tab') return;
+    const controls = $$(`#overlay button:not([disabled]), #overlay a[href], #overlay input:not([disabled])`)
+      .filter(el => el.getClientRects().length > 0);
+    if (!controls.length) return;
+    const first = controls[0], last = controls.at(-1);
+    if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+    else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
   });
 
-  $('#entry-form').addEventListener('submit', event => {
-    event.preventDefault();
+  $('#entry-form').addEventListener('submit', e => {
+    e.preventDefault();
     clearErrors();
-    const name = person.value.trim();
-    const url = canonicalURL(link.value);
-    const cents = parseUSD(amount.value);
+    const name = nameInput.value.trim();
+    const url = canonicalURL(linkInput.value);
+    const cents = parseUSD(amountInput.value);
     let failed = null;
     if (name.length < 2 || name.length > 36 || /[\u0000-\u001f\u007f]/.test(name)) {
-      showError('person', 'Use a Christmas name of 2–36 characters.'); failed ||= person;
+      showError('person', 'Use a Christmas name of 2–36 characters.'); failed ||= nameInput;
     }
-    if (!url) { showError('url', 'Enter a valid public website or social link.'); failed ||= link; }
+    if (!url) { showError('url', 'Enter a valid public website or social link.'); failed ||= linkInput; }
     if (cents === null || differenceCents(cents, 0) === null) {
-      showError('amount', 'Enter at least $1.00 with no more than two decimal places.'); failed ||= amount;
+      showError('amount', 'Enter $1 or more, using at most two decimal places.'); failed ||= amountInput;
     }
     if (failed) { failed.focus(); return; }
 
-    content.replaceChildren();
-    const title = element('h2', '🎁 Your Christmas preview'); title.id = 'dialog-title';
-    content.append(title, element('p', 'This is a private preview—not a public listing, actual leaderboard rank or payment.'));
-    const card = element('div', undefined, 'profile-preview');
-    card.append(element('strong', '🎅 ' + name));
-    const a = element('a', displayURL(url)); a.href = url; a.rel = 'noopener noreferrer nofollow'; a.target = '_blank';
-    card.append(a, element('b', usd(cents) + ' target'));
-    content.append(card, element('p', 'Dodo checkout is intentionally disabled. No payment has been collected or ranking reserved. The approved live version will verify every payment on the server.'));
-    const copy = element('button', 'Copy preview', 'modal-action');
+    dialogContent.replaceChildren();
+    const heading = node('h2', '🎅 Your Christmas preview'); heading.id = 'dialog-title';
+    dialogContent.append(heading);
+    dialogContent.append(node('p', 'Santa says hello! Here is your sample listing. Nothing is published, reserved or paid for.'));
+    const card = node('div', undefined, 'profile-preview');
+    card.append(node('strong', '👑 ' + name));
+    const a = node('a', displayURL(url)); a.href = url; a.rel = 'noopener noreferrer nofollow'; a.target = '_blank';
+    card.append(a, node('b', usd(cents) + ' target total'), node('div', 'Illustrative position #' + rankFor(cents), 'dialog-rank'));
+    dialogContent.append(card);
+    dialogContent.append(node('p', 'This is a design preview based on fictional rankings. Dodo checkout is not enabled; no money is collected.'));
+    const copy = node('button', 'Copy my preview', 'modal-action');
+    copy.type = 'button';
     copy.addEventListener('click', async () => {
-      const text = `🎅 My SantaCrown preview: ${name} · ${displayURL(url)} · ${usd(cents)}`;
-      try { await navigator.clipboard.writeText(text); toast('Preview copied!'); }
-      catch { toast('Clipboard unavailable. Use your device’s share menu.'); }
+      const text = `🎄 SantaCrown preview: ${name} · ${displayURL(url)} · ${usd(cents)} target · Illustrative rank #${rankFor(cents)}`;
+      try { await navigator.clipboard.writeText(text); toast('Preview text copied 🎁'); }
+      catch { toast('Clipboard unavailable on this device'); }
     });
-    const close = element('button', 'Close', 'modal-action secondary'); close.addEventListener('click', hideModal);
-    content.append(copy, close);
+    const close = node('button', 'Close', 'modal-action secondary'); close.type = 'button'; close.addEventListener('click', closeModal);
+    dialogContent.append(copy, close);
     showModal();
   });
-
   const legal = {
-    rules: ['🎄 SantaCrown rules', 'This website is currently a design preview: no real payments, ranks, or prizes are active. The proposed live leaderboard will rank by verified cumulative payment for a normalized public URL. A public URL does not prove ownership, so profile changes and rewards will need separate verification. Reversed payments will be removed. A published tie-break rule, cutoff timezone, promotional terms, payout treatment, and complete refund policy are required before activation. No cash prizes, random winners, or lotteries are planned.'],
-    privacy: ['🔐 Privacy preview', 'This preview validates the form in your browser. It does not submit names, links, or amounts to a backend, and nothing is saved on our servers. Google Fonts may receive ordinary browser connection data. Before live checkout, we will publish a policy describing how payment, listing, and support information is processed.'],
-    refunds: ['↩️ Refund information', 'No checkout is active and no purchase is possible on this preview. Before activation, a real refund and dispute policy will be published. Payment processors may reverse disputed transactions; reversed sums cannot continue counting toward ranking.']
+    rules: ['🎄 SantaCrown preview rules', 'This is an interactive design preview. All public ranks and names are fictional. No payment processing, actual ranking, cash prizes, lottery or random rewards are live. The proposed model ranks verified cumulative contributions associated with a normalized public URL. A public URL alone does not prove account ownership; profile changes and final honors would require separate verification. Actual ranking rules, cutoff time, tie-breaking and cancellation treatment must be published before launch.'],
+    privacy: ['🔐 Privacy in this preview', 'Name, website URL and target amount are processed only in your browser and are not sent to the SantaCrown server or saved. Google Fonts may load and collect ordinary connection information. A complete privacy notice is required before real purchases or account data collection begin.'],
+    refunds: ['↩️ Refund status', 'No payments are enabled in this preview. Therefore no purchases or refunds can take place. A proper refunds and disputes policy is required before payment checkout is activated.']
   };
-  $$('[data-legal]').forEach(button => button.addEventListener('click', () => {
-    const [heading, body] = legal[button.dataset.legal];
-    content.replaceChildren();
-    const title = element('h2', heading); title.id = 'dialog-title';
-    content.append(title, element('p', body)); showModal();
+  $$('[data-legal]').forEach(btn => btn.addEventListener('click', () => {
+    const [title, text] = legal[btn.dataset.legal];
+    dialogContent.replaceChildren();
+    const h = node('h2', title); h.id = 'dialog-title';
+    dialogContent.append(h, node('p', text));
+    showModal();
   }));
 
-  // Keep animation light on mobile, and off when motion reduction is requested.
   if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
     const flakes = $('#flakes');
-    const total = window.matchMedia('(max-width: 720px)').matches ? 16 : 32;
+    const total = window.matchMedia('(max-width: 650px)').matches ? 24 : 52;
     for (let i = 0; i < total; i++) {
-      const flake = element('span', i % 4 ? '❄' : '✦', 'flake');
+      const flake = node('span', i % 4 === 0 ? '✧' : '❄', 'flake');
       flake.style.setProperty('--x', Math.round(Math.random() * 100) + '%');
-      flake.style.setProperty('--size', (8 + Math.round(Math.random() * 10)) + 'px');
-      flake.style.setProperty('--speed', (14 + Math.round(Math.random() * 17)) + 's');
-      flake.style.setProperty('--delay', (-Math.round(Math.random() * 20)) + 's');
-      flake.style.setProperty('--drift', (Math.round(Math.random() * 110) - 55) + 'px');
+      flake.style.setProperty('--size', (8 + Math.round(Math.random() * 13)) + 'px');
+      flake.style.setProperty('--speed', (12 + Math.round(Math.random() * 19)) + 's');
+      flake.style.setProperty('--delay', (-Math.round(Math.random() * 29)) + 's');
+      flake.style.setProperty('--drift', (Math.round(Math.random() * 140) - 70) + 'px');
       flakes.append(flake);
     }
     document.addEventListener('visibilitychange', () => document.body.classList.toggle('snow-paused', document.hidden));
   }
-  updateQuote();
+  updatePreview();
 })();

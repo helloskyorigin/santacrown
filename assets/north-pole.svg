@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 390" role="img" aria-label="Snowy North Pole village with Christmas cottages and fir trees">
+<defs>
+  <linearGradient id="mountains" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#b1dff9" stop-opacity=".7"/><stop offset="1" stop-color="#6ca8d0" stop-opacity=".75"/></linearGradient>
+  <linearGradient id="snow" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#fff"/><stop offset="1" stop-color="#d6ecfb"/></linearGradient>
+  <linearGradient id="roof" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#a7374a"/><stop offset="1" stop-color="#5d233f"/></linearGradient>
+  <linearGradient id="pine" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#207b83"/><stop offset="1" stop-color="#073857"/></linearGradient>
+  <filter id="glow"><feGaussianBlur stdDeviation="6"/></filter>
+  <g id="tree"><rect x="-5" y="-16" width="10" height="36" rx="3" fill="#6c4050"/><path d="M0 -160L-49 -88H-28L-67 -34H-37L-77 5H77L37 -34H67L28 -88H49Z" fill="url(#pine)" stroke="#91d5d2" stroke-opacity=".4" stroke-width="3"/><path d="M-50 -85Q0 -68 50 -85M-61 -32Q0 -11 60 -32M-70 1Q0 14 70 1" fill="none" stroke="#eaf9fb" stroke-width="9" stroke-linecap="round"/><path d="M0 -168l5 9 10 2-8 7 2 11-9-5-9 5 2-11-8-7 10-2Z" fill="#ffe490"/></g>
+  <g id="cottage"><rect x="-62" y="-58" width="124" height="90" rx="7" fill="#7f4b61" stroke="#dcb9a6" stroke-width="5"/><path d="M-77 -61L0 -136L77 -61" fill="url(#roof)" stroke="#6e2f44" stroke-width="9" stroke-linejoin="round"/><path d="M-79 -65Q-46 -56 -28 -79Q-4 -96 3 -90Q21 -86 31 -75Q55 -50 77 -65" fill="none" stroke="#f9fcff" stroke-width="17" stroke-linecap="round"/><rect x="-43" y="-42" width="29" height="31" rx="4" fill="#ffd789" stroke="#fff4d4" stroke-width="4"/><rect x="17" y="-42" width="29" height="31" rx="4" fill="#ffd789" stroke="#fff4d4" stroke-width="4"/><path d="M-29 -42v31m46 -15h29" stroke="#ab7654" stroke-width="3"/><rect x="-11" y="-26" width="22" height="58" rx="5" fill="#583647"/><path d="M-67 31Q0 13 67 31" fill="none" stroke="#fff" stroke-width="14" stroke-linecap="round"/></g>
+  <g id="lamp"><rect x="-4" y="-94" width="8" height="121" fill="#4d4664"/><path d="M-17 -87h34l-6 35h-22z" fill="#ffd680" stroke="#a55f44" stroke-width="5"/><path d="M-17 -92h34L0 -111z" fill="#58395c"/><circle cy="-73" r="22" fill="#ffc959" opacity=".32" filter="url(#glow)"/></g>
+  <g id="candy"><path d="M0 24V-73Q0-105 29-105Q55-105 55-80Q55-61 36-61" fill="none" stroke="#fff7ec" stroke-width="18" stroke-linecap="round"/><path d="M0 24V-73Q0-105 29-105Q55-105 55-80Q55-61 36-61" fill="none" stroke="#dd4656" stroke-width="18" stroke-dasharray="16 22" stroke-linecap="round"/></g>
+</defs>
+<path d="M0 160L110 70 215 170 370 26 534 185 675 90 846 182 992 46 1144 180 1338 51 1600 203V390H0Z" fill="url(#mountains)" opacity=".62"/>
+<path d="M0 215Q230 154 410 227Q640 157 820 209Q1076 147 1250 208Q1430 163 1600 212V390H0Z" fill="#8ec9e8" opacity=".78"/>
+<g opacity=".72"><use href="#tree" transform="translate(66 255) scale(.75)"/><use href="#tree" transform="translate(163 255) scale(.6)"/><use href="#tree" transform="translate(520 238) scale(.67)"/><use href="#tree" transform="translate(710 244) scale(.59)"/><use href="#tree" transform="translate(950 255) scale(.73)"/><use href="#tree" transform="translate(1270 256) scale(.7)"/><use href="#tree" transform="translate(1515 266) scale(.75)"/></g>
+<g opacity=".98"><use href="#cottage" transform="translate(270 270) scale(.87)"/><use href="#cottage" transform="translate(1140 278) scale(.95)"/><use href="#cottage" transform="translate(1435 288) scale(.7)"/></g>
+<use href="#lamp" transform="translate(390 295) scale(.75)"/><use href="#lamp" transform="translate(1050 302) scale(.7)"/><use href="#candy" transform="translate(1300 298) scale(.67)"/>
+<path d="M-20 323Q150 277 320 327Q505 270 694 319Q926 263 1100 325Q1365 269 1620 317V390H-20Z" fill="url(#snow)"/>
+<path d="M-20 358Q180 325 375 358Q605 324 807 360Q1031 326 1201 360Q1451 324 1620 352V390H-20Z" fill="#fff" opacity=".86"/>
+<g fill="#fff" opacity=".85"><circle cx="122" cy="193" r="3"/><circle cx="585" cy="180" r="4"/><circle cx="821" cy="124" r="3"/><circle cx="1207" cy="181" r="3"/><circle cx="1543" cy="159" r="4"/></g>
+</svg>

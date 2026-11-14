@@ -1,72 +1,31 @@
-# SantaCrown 👑🎅
+# SantaCrown 🎅👑 — Christmas World v3
 
-SantaCrown is a responsive Christmas 2026 **frontend preview** with an intentionally disabled checkout. The site is not currently collecting money or granting real ranks.
+SantaCrown is an immersive, responsive Christmas-themed leaderboard **frontend preview**.
 
-## Current features
+## What's implemented
 
-- North Pole winter hero, Santa illustration, #1 center throne and #2/#3 on either side.
-- Fictional, explicitly labeled design examples; no pretending these are paid users.
-- Leaderboard list begins at rank **#4** (no duplicate podium items).
-- Christmas name, public profile/website link, USD target, validation and accessible preview modal.
-- Mobile-friendly participant links and sticky form action; reduced-motion support.
-- Shared, independently tested URL canonicalization and integer-cent USD validation helpers.
-- Rules / Privacy / Refund preview dialogs.
+- North Pole snowy village SVG scene, large Santa and winter aurora hero, animated snow and festive lights.
+- Responsive premium Top-3 podium with #1 golden throne and crown, #2 silver, #3 bronze.
+- Name + public URL + target total preview with instant **fictional** rank estimation.
+- Target shortcuts to beat #3 or #1 in the example data, including leaderboard challenge buttons.
+- Realistic decimal validation, URL normalization, reduced-motion preferences, keyboard-friendly modal, focus recovery.
+- Transparent preview state: no fake real participants, no billing, no fake verified ranks.
 
-## Run locally
+## Run
 
-Open `index.html` or use `python3 -m http.server 8080`, then open http://localhost:8080.
+Static website: run `python3 -m http.server 8080` from project root, then open http://localhost:8080.
 
-## Tests
-
-Run the dependency-free logic suite:
+Run validation tests:
 
 ```bash
 node --test tests/logic.test.cjs
-node --check app.js
-node --check lib.js
+python tests/ui_smoke_v3.py
 ```
 
-An optional UI smoke test is available with Playwright for Python (`python tests/ui_smoke.py`). It uses in-memory HTML to avoid relying on an external development server.
+## Important: payments are OFF
 
-## Payment and security status
+No live Dodo integration, checkout, database, purchase webhook or live leaderboard is connected. Before payments may go live, obtain written confirmation that the exact pay-to-rank model is permitted, create secure server-side checkout sessions, verify the payment webhook, maintain idempotent transactions and refunds, guard name/link ownership, provide accurate terms/policies and replace sample data with verified totals.
 
-**No Dodo checkout, live webhook, database, or real leaderboard is implemented or enabled.** The preview does not collect customer information server-side. To enable real payments safely:
+## Stack
 
-1. Obtain written authorization for the actual paid-placement ranking model, custom amounts, top-three Christmas honors and repeat payment mechanism from the processor. Directory listings of similar websites are not approval.
-2. Implement server-side quote of the difference between an intended USD target and the latest **verified** cumulative total, with a unique idempotency key/transaction and concurrency control. Client input is never authoritative.
-3. Create each hosted Dodo checkout session **server-side**, in `test_mode` initially, with server-held API credentials and appropriate product configuration. Never expose API keys.
-4. Verify signed Dodo webhooks using their *raw request body*, persist unique event IDs and payment IDs in a durable ledger, and update ranks only after verified success. Payment redirects are not proof.
-5. Apply refunds/chargebacks and disputes to the ledger, and define tie-breaks and race conditions for concurrent checkouts. Do not rely on a URL alone to authorize changing name, link or rewards.
-6. Publish and enforce final participant terms, cutoff with timezone, content moderation rules, privacy disclosures, support contact and refund policy. Remove `noindex` only when the site actually launches.
-
-The preview is not a working payment processor integration; it is a development base. See `docs/LAUNCH_CHECKLIST.md`.
-
-## Project layout
-
-- `index.html` — accessible static UI
-- `styles.css` — festive desktop/mobile design
-- `lib.js` — shared link and money-validation logic
-- `app.js` — preview interactions and fictional leaderboard
-- `assets/santa.webp` — optimized Santa illustration
-- `favicon.svg` — app icon
-- `tests/logic.test.cjs` — automated unit tests
-- `tests/ui_smoke.py` — optional Playwright UI smoke tests
-- `docs/LAUNCH_CHECKLIST.md` — production readiness audit
-
-## Final frontend audit (November 14, 2026)
-
-- Refined hero/podium composition, improved Santa artwork blending, stronger text contrast, and mobile spacing.
-- Added keyboard-accessible skip link and improved mobile sticky CTA behavior when interacting with the form.
-- The amount entry uses decimal-friendly text input and **integer cents** validation. Amounts like `$19.99` work.
-- Public URL normalization rejects unsafe, internal and reserved example hosts. Public links identify entries, but do not confer editing or reward claim rights.
-- Fixed the visual test harness to embed the **actual `santa.webp`**, rather than a nonexistent PNG, and assert the image decodes.
-- Extended UI smoke tests to eight widths (320–1920 px), form errors, price chips, keyboard focus wrapping, and screenshots.
-
-Run the frontend checks:
-
-```bash
-node --test tests/logic.test.cjs
-python tests/ui_smoke.py   # requires playwright and Chromium
-```
-
-This is **not a payment-ready release**. Live database, Dodo integration, merchant approval and complete legal policies remain explicit launch blockers.
+Static HTML + CSS + vanilla JavaScript + inline SVG assets. No frontend build step. Works on Vercel from GitHub.
