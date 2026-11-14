@@ -83,3 +83,12 @@ Documentation: [Dodo Checkout Sessions](https://docs.dodopayments.com/api-refere
 - **UX:** unknown tie rank is conservatively estimated; stale/offline amounts no longer display a seemingly authoritative quote; a reversed individual payment receives a clear status.
 
 `npm test`, `npm run audit`, and browser scripts are self-contained tests, not substitute for a real Supabase Postgres transaction and Dodo sandbox test. Real-money launch remains gated by credentials, explicit approval and operator verification.
+
+## v8 leaderboard clarity & Christmas UX
+
+- Every verified leaderboard row exposes its rank, Christmas display name, a clearly labeled **Open link ↗** external link, net USD total, and a **Beat #N** target shortcut. The external link opens in a new tab with `noopener noreferrer nofollow ugc`.
+- The golden podium shows the top three verified ranks with links that open those participants’ submitted public URLs. The form shows a local name-and-link preview as the visitor types.
+- Search filters the latest **top 100** verified entries by name or displayed URL. The Top 10 / Top 100 controls change the visible list. No paid entries are invented when the database is not configured.
+- `Beat #N` only prefills a proposed total (current competitor's net USD + $1). **It never charges or reserves a position** and does not copy that person's link into the form. The server remains the sole source of truth for the exact payable difference.
+- Christmas styling is layered CSS over the existing real Santa/North Pole decorative assets; buttons, cards, links and list are accessible HTML, not an unclickable image. Desktop, tablet, and mobile use the same data-backed behavior.
+- Optional local browser QA: install Python Playwright and Chromium, then `python tests/v8_ui.py` (or set `CHROMIUM_BIN`). The test uses **only stubbed** API entries in `about:blank`; test data is never published to a live leaderboard.

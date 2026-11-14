@@ -363,7 +363,7 @@
     const url = card.querySelector('.slot-url');
     const amount = card.querySelector('.slot-amount');
     title.textContent = entry.name;
-    url.replaceChildren(safeExternalLink(entry.link, displayURL(entry.link)));
+    url.replaceChildren(safeExternalLink(entry.link, '↗ Visit ' + displayURL(entry.link)));
     amount.textContent = usd(entry.total_cents);
   }
   function renderLeaderboard() {

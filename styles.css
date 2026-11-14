@@ -164,3 +164,8 @@ body{background:linear-gradient(180deg,#edf8ff 0%,#e7f5ff 45%,#f5fbff 100%)}
 }
 @media(max-width:355px){.hero-rule{font-size:9px}.stage-helper{font-size:9px}.podium-topline strong{font-size:7px}.leader-search input{font-size:12px}.board-row .leader-identity .leader-name{font-size:11px}.rank-action{font-size:8px}}
 @media(prefers-reduced-motion:reduce){.podium-card,.board-row{transition:none}.podium-card:hover{transform:none}}
+
+/* v8 final composition: explanatory chip and CTA stack centrally on desktop. */
+.hero-rule{display:flex;margin:0 auto 12px;max-width:545px}
+.hero .cta-main{display:inline-flex;align-items:center;justify-content:center;gap:8px}
+@media(max-width:680px){.hero-rule{max-width:340px}}
