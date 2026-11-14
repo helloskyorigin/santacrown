@@ -35,6 +35,9 @@ async function schemaReady(){
   // Verifies that the mandatory moderation/public-listing migration was applied.
   const rows=await rest('GET','sc_public_totals?select=link&limit=1');
   if(!Array.isArray(rows))throw Error('REQUIRED_MIGRATION_MISSING');
+  const meta=await rest('GET','sc_schema_meta?select=version&id=eq.1&limit=1');
+  if(!Array.isArray(meta)||meta.length!==1||!Number.isInteger(meta[0].version)||meta[0].version<3)
+    throw Error('RECONCILIATION_MIGRATION_MISSING');
   return true;
 }
 module.exports={rpc,leaderboard,settings,rest,schemaReady};

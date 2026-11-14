@@ -30,6 +30,12 @@
         return;
       }
       rank.textContent='';
+      if(data.status==='reversed'){
+        complete=true;
+        title.textContent='Payment reversed';
+        copy.textContent='This payment no longer contributes to your rank following a refund or dispute. Other verified payments to the same link are unaffected.';
+        return;
+      }
       if(data.status==='failed'||data.status==='unknown'){
         complete=true;
         title.textContent='Payment not confirmed';

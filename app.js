@@ -81,13 +81,14 @@
     // Existing ties are ordered by first-payment timestamp, so only count
     // a same-total competitor if it ranks before this existing entry.
     return 1 + rest.filter(e => e.total_cents > cents ||
-      (e.total_cents === cents && (!existing || e.rank < existing.rank))).length;
+      (e.total_cents === cents && (!existing || !Number.isSafeInteger(existing.rank) || e.rank < existing.rank))).length;
   }
   function updateEstimate() {
     const cents = parseUSD(amountInput.value);
     const listing = currentListing();
     const existing = listing?.total_cents || 0;
     if (!boardAvailable) {
+      quote.textContent = '🎁 Payment and ranking quotes are unavailable until the verified leaderboard reconnects.';
       const message = cents === null ? 'Enter a valid target amount.' : 'Reliable rank estimates open when the verified leaderboard is connected.';
       projected.replaceChildren(element('span','❄️'),element('span',message));
     } else if (cents === null) {

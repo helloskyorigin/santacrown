@@ -2,12 +2,12 @@
 const {allow,json,rawBody}=require('../server/http');
 const {rpc}=require('../server/db');
 const {verifySignature,paymentDetails}=require('../server/dodo');
-const {paymentsConfigured}=require('../server/config');
+const {webhookConfigured}=require('../server/config');
 const UUID=/^[a-f0-9]{8}-[a-f0-9]{4}-[1-8][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i;
 const ID=/^[A-Za-z0-9_-]{4,160}$/;
 module.exports=async function handler(req,res){
   if(!allow(req,res,'POST'))return;
-  if(!paymentsConfigured())return json(res,503,{code:'WEBHOOK_NOT_READY'});
+  if(!webhookConfigured())return json(res,503,{code:'WEBHOOK_NOT_READY'});
   let raw;
   try{raw=await rawBody(req,250000)}catch{return json(res,413,{code:'PAYLOAD_TOO_LARGE'})}
   if(!verifySignature(raw,req.headers))return json(res,401,{code:'INVALID_SIGNATURE'});
@@ -35,12 +35,18 @@ module.exports=async function handler(req,res){
          ||(d.currency&&d.currency!=='USD'))return json(res,422,{code:'INVALID_REFUND'});
       await rpc('sc_record_refund',{p_event_id:eventId,p_refund_id:d.refund_id,
         p_payment_id:d.payment_id,p_amount_cents:d.amount});
-    }else if(['dispute.opened','dispute.won','dispute.lost'].includes(event.type)){
+    }else if(['dispute.opened','dispute.challenged','dispute.accepted','dispute.expired',
+               'dispute.cancelled','dispute.won','dispute.lost'].includes(event.type)){
       if(!ID.test(d.dispute_id||'')||!ID.test(d.payment_id||''))return json(res,422,{code:'INVALID_DISPUTE'});
       const observed=event.timestamp;
       if(!observed||Number.isNaN(Date.parse(observed)))return json(res,422,{code:'INVALID_TIMESTAMP'});
+      // Conservatively hold ranking during open/challenged disputes; accepted, expired
+      // or lost disputes remove credit. Cancelled/won restore any non-refunded credit.
+      const stateByEvent={opened:'opened',challenged:'opened',accepted:'lost',expired:'lost',
+        cancelled:'won',won:'won',lost:'lost'};
+      const state=stateByEvent[event.type.slice('dispute.'.length)];
       await rpc('sc_record_dispute',{p_event_id:eventId,p_dispute_id:d.dispute_id,
-        p_payment_id:d.payment_id,p_state:event.type.slice('dispute.'.length),p_observed_at:observed});
+        p_payment_id:d.payment_id,p_state:state,p_observed_at:observed});
     }
     // Unknown or non-ranking events are acknowledged without credit.
     return json(res,200,{ok:true});
@@ -50,3 +56,7 @@ module.exports=async function handler(req,res){
     return json(res,503,{code:'PROCESSING_FAILED'});
   }
 };
+
+// Preserve original signed bytes for Node/Next-style Vercel runtimes that honor
+// this config. If a host has already parsed the body, rawBody() fails closed.
+module.exports.config={api:{bodyParser:false}};

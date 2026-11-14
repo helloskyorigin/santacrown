@@ -60,6 +60,7 @@ test('checkout computes charge in SQL, not browser, creates provider session wit
  global.fetch=async(url,options={})=>{
   calls.push({url:String(url),data:options.body?JSON.parse(options.body):null});
   if(String(url).includes('sc_public_totals?select=link'))return mockReply([]);
+  if(String(url).includes('sc_schema_meta?'))return mockReply([{version:3}]);
   if(String(url).includes('rpc/sc_prepare_checkout'))return mockReply({intent_id:uuid,charge_cents:4500,target_cents:10000,current_cents:5500});
   if(String(url).includes('/checkouts'))return mockReply({session_id:'cks_1',checkout_url:'https://checkout.dodopayments.com/session/cks_1'});
   if(String(url).includes('rpc/sc_mark_checkout'))return mockReply(null);
@@ -114,7 +115,7 @@ test('refund/dispute update ledger, even without payment success arriving first'
 }));
 test('leaderboard returns ordered genuine entries and readiness flag',async()=>withEnv(approved,async()=>{
  const old=global.fetch;
- global.fetch=async()=>mockReply([{rank:1,name:'A',link:'https://a.com/',total_cents:15000},{rank:2,name:'B',link:'https://b.com/',total_cents:7000}]);
+ global.fetch=async url=>String(url).includes('sc_schema_meta?')?mockReply([{version:3}]):String(url).includes('sc_public_totals?')?mockReply([]):mockReply([{rank:1,name:'A',link:'https://a.com/',total_cents:15000},{rank:2,name:'B',link:'https://b.com/',total_cents:7000}]);
  try{const r=res();await board({method:'GET',headers:{}},r);assert.equal(r.code,200);assert.equal(r.payload.entries.length,2);assert.equal(r.payload.paymentsEnabled,true)}finally{global.fetch=old}
 }));
 test('payment status never trusts browser redirect',async()=>withEnv(approved,async()=>{
@@ -129,13 +130,13 @@ test('public listing lookup returns verified amount by canonical URL outside top
   const old=global.fetch;let seen='';
   global.fetch=async url=>{
     seen=String(url);
-    return mockReply([{name:'First Verified Name',link:'https://repeat.com/',total_cents:19000}]);
+    return mockReply({name:'First Verified Name',link:'https://repeat.com/',total_cents:19000});
   };
   try{
     const r=res();await listing({method:'GET',query:{link:'http://www.repeat.com/?utm_source=spam'},headers:{}},r);
     assert.equal(r.code,200);assert.equal(r.payload.entry.total_cents,19000);
     assert.equal(r.payload.entry.name,'First Verified Name');
-    assert.ok(seen.includes('sc_public_totals?'));
+    assert.ok(seen.includes('rpc/sc_public_listing'));
   }finally{global.fetch=old}
 }));
 

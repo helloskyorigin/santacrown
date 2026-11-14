@@ -59,3 +59,12 @@ node scripts/release-audit.cjs
 These tests mock payment infrastructure and do **not** replace real Supabase transaction and Dodo sandbox E2E verification.
 
 Support: **hello.skyorigin@gmail.com**.
+
+
+## v7 reconciliation deployment — mandatory upgrade
+
+1. Keep `SANTACROWN_CHECKOUT_ENABLED=false` during upgrade; **do not unset** Dodo webhook secret or DB credentials when pausing sales. Existing payment/refund/dispute events must keep reconciling.
+2. Run SQL files 001 → 002 → **003_reconciliation.sql** in the dedicated Supabase SQL editor, using your usual audited migration procedure. Existing ledger rows are preserved.
+3. Confirm `select version from public.sc_schema_meta where id=1;` returns 3. Verify an empty listing RPC returns JSON null and a fully reversed payment is shown as `reversed`.
+4. Run Dodo signed webhook sandbox tests with actual payment success, partial refund, full refund and dispute event variants. Test refunds after sales have been disabled. Replay identical events and confirm no double credit.
+5. Only re-enable checkout once the deployment health check and real database-backed transaction checks pass. Do not flip a live flag to bypass missing migration or compliance approval.

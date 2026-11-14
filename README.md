@@ -26,7 +26,7 @@ When the same URL starts two checkouts at the same time, both successful payment
 
 ## Setup (merchant/admin action required)
 
-1. Create a *new dedicated Supabase project*. Run **both** `db/001_santacrown.sql` **and then** `db/002_visibility.sql` using **Supabase Dashboard → SQL Editor**. Verify that `public.santacrown_leaderboard` starts empty. Review/enable Supabase's REST Data API for the exposed `public` schema; **only `service_role` is granted access**. No direct anonymous ledger access is permitted.
+1. Create a *new dedicated Supabase project*. Run **all three migrations in order**: `db/001_santacrown.sql`, `db/002_visibility.sql`, then `db/003_reconciliation.sql` using **Supabase Dashboard → SQL Editor**. Verify that `public.santacrown_leaderboard` starts empty. Review/enable Supabase's REST Data API for the exposed `public` schema; **only `service_role` is granted access**. No direct anonymous ledger access is permitted.
 2. In Vercel project's **Settings → Environment Variables**, add `SUPABASE_URL` and **`SUPABASE_SECRET_KEY`** (or legacy `SUPABASE_SERVICE_ROLE_KEY`), server-only. Never use a public/anon key for server ledger writes. Set `SANTACROWN_RATE_SALT` to a long random value (server-only).
 3. Obtain Dodo's written confirmation that SantaCrown's **exact** paid rank + cumulative contributions + Top-3 Christmas honors business model is eligible. Comparable sites do not prove merchant eligibility. Create a Dodo *one-time Pay What You Want* product in USD with a $1 minimum and no coupons; obtain its `pdt_...` product ID.
 4. Set Dodo server-side test mode keys and `DODO_PAYMENTS_ENVIRONMENT=test_mode`. Configure webhook endpoint **`https://santacrown.vercel.app/api/webhook`** in **Dodo Developer → Webhooks** and subscribe to `payment.succeeded`, `refund.succeeded`, `dispute.opened`, `dispute.won`, and `dispute.lost`. Copy the endpoint's *own* signing key into the Vercel secret `DODO_PAYMENTS_WEBHOOK_KEY`. Test and live mode webhook secrets are different.
@@ -72,3 +72,14 @@ Documentation: [Dodo Checkout Sessions](https://docs.dodopayments.com/api-refere
 - New unit regressions include safe launch gates, terms refusal, missing migration, and secret-free health response.
 
 **Important:** All unit/browser tests simulate provider events. No live Dodo transaction, SQL migration execution or real merchant approval has been verified from this repository. The operator must complete the checklist in `docs/OPERATOR_RUNBOOK.md` before collecting real money.
+
+## v7 deep audit corrections (payment reconciliation)
+
+- **Critical fix:** checkout disabled/cutoff no longer disables signed payment/refund/dispute webhooks. `webhookConfigured()` is independent of `canCharge()`. Leave webhook secrets configured whenever past payments may be adjusted.
+- **New migration is mandatory:** `db/003_reconciliation.sql` adds a schema-version gate, a parameterized public listing lookup and a per-payment status that shows `reversed` after a full refund or chargeback. The checkout API stays closed until version 3 is installed.
+- **Dispute coverage:** opened/challenged are held, lost/accepted/expired remove credit, won/cancelled restore only non-refunded credit. Provider event types were cross-checked with Dodo's event catalog; real signed sandbox payloads still require merchant testing.
+- **Raw body:** the webhook declares body-parser opt-out; body streams/signatures must be validated on the actual Vercel runtime and provider before enabling live collection. Parsed JSON is never reserialized to forge an apparently valid signature.
+- **Exact listing query:** `sc_public_listing` RPC replaces an ad-hoc URL-filter query; it respects the hidden/moderated listing view.
+- **UX:** unknown tie rank is conservatively estimated; stale/offline amounts no longer display a seemingly authoritative quote; a reversed individual payment receives a clear status.
+
+`npm test`, `npm run audit`, and browser scripts are self-contained tests, not substitute for a real Supabase Postgres transaction and Dodo sandbox test. Real-money launch remains gated by credentials, explicit approval and operator verification.
