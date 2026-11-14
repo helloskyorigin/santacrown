@@ -13,6 +13,7 @@
   const dialog = $('#dialog-backdrop');
   const dialogContent = $('#dialog-content');
   let entries = [];
+  let boardView = 'ten';
   let paymentsEnabled = false;
   let boardAvailable = false;
   let checkoutBusy = false;
@@ -28,6 +29,8 @@
   let activeRequest = null;
   let consecutiveErrors = 0;
   const refreshButton = $('#refresh-board');
+  const boardSearch = $('#leader-search');
+  const resultCount = $('#board-result-count');
   const refreshLabel = $('#board-updated');
   const challenges = $('#rank-challenges');
   const consentWrap = $('#checkout-consent');
@@ -110,11 +113,19 @@
     }
     $$('.quick-amounts button').forEach(button => button.setAttribute('aria-pressed', String(parseUSD(button.dataset.amount) === cents)));
   }
+  function updateIdentityPreview() {
+    const name = nameInput.value.trim().slice(0,36);
+    const link = canonicalURL(urlInput.value);
+    $('#join-name-preview').textContent = name || 'Your Christmas name';
+    $('#join-link-preview').textContent = link ? '↗ ' + displayURL(link) : 'Your link will appear here ↗';
+    $('#join-link-preview').title = link || '';
+  }
   amountInput.addEventListener('input', () => { setError('amount', ''); updateEstimate(); });
-  nameInput.addEventListener('input', () => setError('person', ''));
+  nameInput.addEventListener('input', () => { setError('person', ''); updateIdentityPreview(); });
   urlInput.addEventListener('input', () => {
     setError('profile-link', '');
     knownEntry = null;
+    updateIdentityPreview();
     updateEstimate();
     window.clearTimeout(lookupTimer);
     const checked = canonicalURL(urlInput.value);
@@ -276,6 +287,76 @@
         b.textContent = paymentsEnabled && boardAvailable ? '🎁 Join SantaCrown' : '🎁 Preview Your Christmas Entry';
     });
   }
+  function setTargetToPass(entry) {
+    if (!entry || !Number.isSafeInteger(entry.total_cents)) return;
+    const higher = entry.total_cents + 100;
+    if (!Number.isSafeInteger(higher)) return;
+    amountInput.value = (higher / 100).toFixed(2);
+    updateEstimate();
+    goJoin();
+    toast(`🎁 Target set to beat #${entry.rank}. Enter your own link to see your exact payable amount.`);
+  }
+  boardSearch.addEventListener('input', renderLeaderboardRows);
+  $('#show-ten').addEventListener('click', () => { boardView='ten'; renderLeaderboardRows(); });
+  $('#show-all').addEventListener('click', () => { boardView='all'; renderLeaderboardRows(); });
+  function updateBoardTabs() {
+    for (const [key, button] of [['ten',$('#show-ten')],['all',$('#show-all')]]) {
+      const active = boardView === key;
+      button.classList.toggle('active', active);
+      button.setAttribute('aria-pressed', String(active));
+    }
+  }
+  function renderLeaderboardRows() {
+    updateBoardTabs();
+    const list = $('#leaderboard-list');
+    const term = boardSearch.value.trim().toLowerCase();
+    if (!entries.length) {
+      resultCount.textContent = '';
+      const empty = element('div', undefined, 'empty-board');
+      const icon = element('span','🎁'); icon.setAttribute('aria-hidden','true');
+      empty.append(icon, element('strong',"Santa’s list is waiting for its first legend"),
+        element('p','When verified payments open, real names, clickable links and totals appear here. No made-up contestants.'));
+      const action = element('button','🎄 Preview your Christmas entry →','empty-action');
+      action.type='button'; action.addEventListener('click',goJoin); empty.append(action);
+      list.replaceChildren(empty);
+      return;
+    }
+    const subset = term ? entries.slice(0,100).filter(e =>
+      e.name.toLowerCase().includes(term) || displayURL(e.link).toLowerCase().includes(term))
+      : entries.slice(0,boardView === 'ten' ? 10 : 100);
+    list.replaceChildren();
+    resultCount.textContent = term
+      ? `Showing ${subset.length} matching ${subset.length === 1 ? 'entry' : 'entries'} from the latest top ${entries.length} loaded.`
+      : `Showing ${subset.length} of ${entries.length} verified ${entries.length === 1 ? 'entry' : 'entries'}.`;
+    if (!subset.length) {
+      const notFound=element('div',undefined,'empty-board search-empty');
+      notFound.append(element('span','🔎'),element('strong','No matching Christmas names or links'),
+        element('p','Try another name or select Top 100. Only the most recent top 100 verified entries are searchable.'));
+      const clear=element('button','Clear search','empty-action');clear.type='button';clear.onclick=()=>{boardSearch.value='';renderLeaderboardRows();boardSearch.focus()};notFound.append(clear);
+      list.append(notFound); return;
+    }
+    subset.forEach(entry => {
+      const row = element('article', undefined, 'board-row'+(entry.rank<=3?' board-top board-top-'+entry.rank:''));
+      row.setAttribute('aria-label',`Rank ${entry.rank}: ${entry.name}; verified total ${usd(entry.total_cents)}`);
+      const rank=element('div',undefined,'rank-num');
+      rank.append(element('span',entry.rank===1?'👑':entry.rank===2?'🥈':entry.rank===3?'🥉':'#'+entry.rank));
+      const identity=element('div',undefined,'leader-identity');
+      const named=element('strong',entry.name,'leader-name');
+      named.title=entry.name;
+      const link=safeExternalLink(entry.link,'↗ Open '+displayURL(entry.link),'leader-url');
+      link.title='Open '+entry.link+' in a new tab';
+      link.setAttribute('aria-label',`Open ${entry.name}’s link in a new tab: ${displayURL(entry.link)}`);
+      identity.append(named,link);
+      const paid=element('div',undefined,'leader-paid');
+      paid.append(element('span','NET VERIFIED TOTAL','paid-label'),element('strong',usd(entry.total_cents),'leader-total'));
+      const action=element('button','↑ Beat #'+entry.rank,'rank-action');
+      action.type='button';
+      action.setAttribute('aria-label',`Set a target amount to pass ${entry.name} at rank ${entry.rank}`);
+      action.addEventListener('click', () => setTargetToPass(entry));
+      row.append(rank,identity,paid,action);
+      list.append(row);
+    });
+  }
   function insertRank(slot, entry) {
     const card = $(`.podium-card[data-pos="${slot}"]`);
     const title = card.querySelector('.slot-name');
@@ -288,10 +369,7 @@
   function renderLeaderboard() {
     const list = $('#leaderboard-list');
     if (!entries.length) {
-      const empty = element('div', undefined, 'empty-board');
-      const icon = element('span', '🎁'); icon.setAttribute('aria-hidden', 'true');
-      empty.append(icon, element('strong', "The first gift hasn't arrived yet!"), element('p', 'When payments are enabled and verified, real participants will appear here. No invented names, totals or rankings.'));
-      list.replaceChildren(empty);
+      renderLeaderboardRows();
       const originals = [
         {name: "Santa's Throne", link: 'Your name could be here', portrait: '🎅'},
         {name: 'Silver Star', link: 'Awaiting a legend', portrait: '❄️'},
@@ -308,13 +386,7 @@
       $('#board-status').textContent = "❄️ Santa's throne is waiting for its first legend";
       updateChallenges(); return;
     }
-    list.replaceChildren();
-    const ranked = entries.slice(0, 100);
-    ranked.forEach((entry, i) => {
-      const row = element('div', undefined, 'board-row');
-      row.append(element('span', '#' + (i + 1), 'rank-num'), element('div', entry.name, 'leader-name'), safeExternalLink(entry.link, displayURL(entry.link), 'leader-url'), element('span', usd(entry.total_cents), 'leader-total'));
-      list.append(row);
-    });
+    renderLeaderboardRows();
     [1,2,3].forEach(i => {
       const entry = entries[i-1];
       if (entry) insertRank(i,entry);
@@ -430,6 +502,7 @@
     }
     document.addEventListener('visibilitychange',()=>document.body.classList.toggle('snow-paused',document.hidden));
   }
+  updateIdentityPreview();
   updateEstimate();
   updateCheckoutUI();
   if (location.protocol !== 'file:') fetchLeaderboard().then(scheduleRefresh);
