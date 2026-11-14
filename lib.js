@@ -23,7 +23,7 @@
       const u = new URL(value);
       if (!['https:', 'http:'].includes(u.protocol) || u.username || u.password || u.port) return null;
       const h = u.hostname.toLowerCase().replace(/\.$/, '');
-      if (h.length > 253 || !h.includes('.') || h.endsWith('.local') || h.endsWith('.internal') || h.endsWith('.localhost') || h.endsWith('.test')) return null;
+      if (h.length > 253 || !h.includes('.') || h.endsWith('.local') || h.endsWith('.internal') || h.endsWith('.localhost') || h.endsWith('.test') || h.endsWith('.example') || h.endsWith('.invalid')) return null;
       if (/^(localhost|\[.*\]|\d+(?:\.\d+){3})$/i.test(h)) return null; // avoid IP / internal destinations
       if (!h.split('.').every(x => x.length >= 1 && x.length <= 63 && /^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/.test(x))) return null;
       if (h.split('.').at(-1).length < 2) return null;
