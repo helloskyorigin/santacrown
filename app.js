@@ -50,8 +50,13 @@
   $$('[data-join]').forEach(button => button.addEventListener('click', goJoin));
   if ('IntersectionObserver' in window) {
     const sticky = $('.mobile-join');
+    let formVisible = false;
+    function syncSticky(){sticky.classList.toggle('hidden', formVisible || !!document.querySelector('#entry-form:focus-within'))}
+    $('#entry-form').addEventListener('focusin', syncSticky);
+    $('#entry-form').addEventListener('focusout', () => requestAnimationFrame(syncSticky));
     new IntersectionObserver(entries => {
-      sticky.classList.toggle('hidden', entries.some(entry => entry.isIntersecting));
+      formVisible = entries.some(entry => entry.isIntersecting);
+      syncSticky();
     }, { threshold: .04 }).observe($('#join'));
   }
 
@@ -68,7 +73,7 @@
     updateQuote();
     showError('amount', '');
   }));
-  amount.addEventListener('input', updateQuote);
+  amount.addEventListener('input', () => { updateQuote(); showError('amount', ''); });
   link.addEventListener('input', () => showError('url', ''));
   person.addEventListener('input', () => showError('person', ''));
 
