@@ -1,121 +1,102 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
-  <title>SantaCrown — Who Will Rule Christmas? 🎅👑</title>
-  <meta name="description" content="A magical North Pole Christmas leaderboard. Meet Santa, explore the crown, and preview your place — no signup needed."/>
-  <meta name="theme-color" content="#162c61"/>
-  <meta name="color-scheme" content="light"/>
-  <meta name="robots" content="noindex,nofollow"/>
-  <meta property="og:title" content="SantaCrown — Who Will Rule Christmas?"/>
-  <meta property="og:description" content="Enter the North Pole. Chase Santa's crown. Christmas 2026."/>
-  <meta property="og:type" content="website"/>
-  <link rel="icon" href="favicon.svg" type="image/svg+xml"/>
-  <link rel="preconnect" href="https://fonts.googleapis.com"/>
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800;900&family=Fraunces:opsz,wght,SOFT,WONK@9..144,700,30,1;9..144,800,30,1;9..144,900,30,1&display=swap" rel="stylesheet"/>
-  <link rel="stylesheet" href="styles.css"/>
-  <script src="lib.js" defer></script>
-  <script src="app.js" defer></script>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <title>SantaCrown — Who Will Rule Christmas? 🎅</title>
+  <meta name="description" content="The North Pole's Christmas leaderboard. One golden crown, one magical Christmas. See Santa's throne and your potential place on the list.">
+  <meta name="theme-color" content="#112953">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="SantaCrown — Who Will Rule Christmas?">
+  <meta property="og:description" content="One crown. One magical Christmas. Your place on Santa's list is waiting.">
+  <meta name="robots" content="noindex,nofollow">
+  <link rel="canonical" href="https://santacrown.vercel.app/">
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,600;9..144,700;9..144,800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/styles.css?v=4">
+  <script src="/lib.js" defer></script>
+  <script src="/app.js?v=4" defer></script>
 </head>
 <body>
-  <a class="skip-link" href="#leaderboard">Skip to leaderboard</a>
-  <header class="winter" id="home">
-    <div class="aurora" aria-hidden="true"></div>
-    <div class="starfield" aria-hidden="true"></div>
-    <div class="lights" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
-    <div class="flakes" id="flakes" aria-hidden="true"></div>
-    <div class="north-pole-scene" aria-hidden="true"></div>
-    <div class="page-width">
-      <nav class="nav" aria-label="Main navigation">
-        <a class="brand" href="#home"><span class="brand-icon" aria-hidden="true">👑</span><span>Santa<span class="brand-gold">Crown</span></span></a>
-        <div class="navlinks"><a href="#leaderboard">Leaderboard</a><a href="#how">How it works</a><a href="#rewards">Christmas honors</a></div>
-        <button class="nav-join" type="button" data-join>🎁 Join the List</button>
-      </nav>
-      <div class="hero">
-        <div class="hero-copy">
-          <div class="season"><span class="glow-dot"></span> THE NORTH POLE · CHRISTMAS 2026 <span class="glow-dot"></span></div>
-          <div class="hero-mini">Santa is looking for a Christmas legend…</div>
-          <h1>Who Will Rule <em>Christmas?</em></h1>
-          <p>One golden crown. A whole lot of Christmas spirit.<br class="desktop-only"/> See where your name could land on Santa's leaderboard.</p>
-          <div class="hero-buttons">
-            <button class="hero-cta" type="button" data-join><span aria-hidden="true">👑</span> Preview Your Rank <span aria-hidden="true">→</span></button>
-            <a class="ghost-cta" href="#leaderboard">See the leaderboard <span aria-hidden="true">↗</span></a>
-          </div>
-          <div class="hero-pills"><span>✨ No website login</span><span>🎄 Christmas 2026</span><span>🎁 Just for fun</span></div>
-        </div>
-        <div class="hero-art" aria-hidden="true">
-          <div class="moon"></div>
-          <img class="village-art" src="assets/village.webp" width="448" height="265" decoding="async" alt=""/>
-          <div class="santa-glow"></div>
-          <img class="santa-art" src="assets/santa.webp" width="430" height="365" fetchpriority="high" decoding="async" alt=""/>
-          <div class="santa-speech">Ho ho ho! 🎅<br/><small>The crown awaits!</small></div>
-          <div class="floating-gift g1">🎁</div><div class="floating-gift g2">🎀</div>
-        </div>
-      </div>
-      <div class="winter-break" aria-hidden="true"><span>❄</span><span>✦</span><span>❄</span></div>
-      <div class="mainstage">
-        <section class="stage-left" aria-label="Christmas podium">
-          <div class="podium-heading"><div class="small-label">✦ SANTA'S GOLDEN THRONE ✦</div><h2>Top of the <span>Nice List</span> 👑</h2><p>Who's taking the crown this Christmas?</p></div>
-          <div class="demo-pill" role="note">❄️ Fictional examples · Design preview</div>
-          <div class="podium" id="podium">
-            <article class="podium-card second" data-rank="2">
-              <div class="snowcap" aria-hidden="true"></div><div class="medal">2</div><div class="portrait" aria-hidden="true">🧝</div>
-              <h3>Frost Elf</h3><div class="podium-link">frostelf.example</div><div class="sum">$180</div><div class="podium-base">SILVER STAR</div>
-              <button class="challenge" type="button" data-challenge="180">Outrank #2 <span aria-hidden="true">↗</span></button>
-            </article>
-            <article class="podium-card first" data-rank="1">
-              <div class="snowcap" aria-hidden="true"></div><div class="top-crown" aria-hidden="true">👑</div><div class="medal">1</div><div class="portrait" aria-hidden="true">⛄</div>
-              <div class="winner-tag">THE CROWN HOLDER</div><h3>Snow King</h3><div class="podium-link">snowking.example</div><div class="sum">$250</div><div class="podium-base">GOLDEN THRONE</div>
-              <button class="challenge" type="button" data-challenge="250">Take the crown <span aria-hidden="true">↗</span></button>
-            </article>
-            <article class="podium-card third" data-rank="3">
-              <div class="snowcap" aria-hidden="true"></div><div class="medal">3</div><div class="portrait" aria-hidden="true">🦌</div>
-              <h3>Gift Boss</h3><div class="podium-link">giftboss.example</div><div class="sum">$120</div><div class="podium-base">BRONZE BELLS</div>
-              <button class="challenge" type="button" data-challenge="120">Outrank #3 <span aria-hidden="true">↗</span></button>
-            </article>
-          </div>
-          <div class="podium-ground" aria-hidden="true"><span>🎁</span><span>❄️</span><span>🎁</span></div>
-        </section>
-        <section class="entry" id="join" aria-labelledby="entry-title">
-          <div class="ribbon" aria-hidden="true">🎀</div>
-          <div class="entry-top"><span>🎅 SANTA'S GIFT DESK</span><span class="draft">PREVIEW</span></div>
-          <h2 id="entry-title">Your name on <em>Santa's List</em></h2>
-          <p class="entry-lead">Three details. No signup. A little North Pole magic.</p>
-          <form id="entry-form" novalidate>
-            <div class="field"><label for="person"><span>01</span> Your Christmas name</label><input id="person" name="person" autocomplete="nickname" maxlength="36" placeholder="e.g. Snow Legend" aria-describedby="person-error" required/><div class="field-error" id="person-error"></div></div>
-            <div class="field"><label for="url"><span>02</span> Website / social link</label><input id="url" name="url" inputmode="url" autocomplete="url" maxlength="220" placeholder="x.com/yourname" aria-describedby="url-error" required/><div class="field-error" id="url-error"></div></div>
-            <div class="field"><label for="amount"><span>03</span> Your target total (USD)</label><div class="dollar-wrap"><span aria-hidden="true">$</span><input id="amount" name="amount" type="text" value="10" inputmode="decimal" autocomplete="off" maxlength="24" placeholder="Choose your total" aria-describedby="amount-error quote" required/></div><div class="field-error" id="amount-error"></div></div>
-            <div class="quick-amounts" role="group" aria-label="Quick target amounts"><button type="button" data-amount="5">$5</button><button type="button" data-amount="19">$19</button><button type="button" data-amount="49">$49</button><button type="button" data-amount="149">$149</button></div>
-            <div class="preview-rank" id="preview-rank" aria-live="polite"><div class="preview-icon">🎄</div><div class="preview-description"><strong>Choose your spot</strong><span>See your example rank as you type.</span></div><div class="preview-position" id="preview-position">—</div></div>
-            <div class="target-shortcuts"><button type="button" data-target="bronze">🥉 Beat #3</button><button type="button" data-target="gold">👑 Take #1</button></div>
-            <p class="quote" id="quote">🎁 New entry · Target $10.00</p>
-            <button type="submit" class="pay-button">🎁 See My Christmas Preview <span aria-hidden="true">→</span></button>
-            <p class="payment-note"><span aria-hidden="true">🔒</span> Design preview only · No payments collected</p>
-          </form>
-        </section>
-      </div>
-    </div>
-    <div class="snowbank" aria-hidden="true"></div>
+<a href="#leaderboard" class="skip-link">Skip to the leaderboard</a>
+<div class="north-world" id="top">
+  <div class="aurora" aria-hidden="true"></div>
+  <div class="starfield" aria-hidden="true"></div>
+  <div class="snowfall" id="snowfall" aria-hidden="true"></div>
+  <div class="fairy-lights" aria-hidden="true"><span>✦</span><span>✦</span><span>✦</span><span>✦</span><span>✦</span><span>✦</span></div>
+  <div class="santa-picture" aria-hidden="true"><img src="/assets/santa-cut.webp" width="500" height="365" fetchpriority="high" alt=""></div>
+  <div class="village-picture" aria-hidden="true"><img src="/assets/north-pole.webp" width="418" height="288" alt="" decoding="async"></div>
+  <nav class="site-nav container" aria-label="Main navigation">
+    <a class="brand" href="#top"><span class="brand-crown" aria-hidden="true">👑</span><span>Santa<span class="brand-accent">Crown</span></span></a>
+    <div class="nav-middle"><a href="#top" aria-current="page">Home</a><a href="#leaderboard">Leaderboard</a><a href="#how">How It Works</a><a href="#rewards">Rewards</a></div>
+    <button class="nav-action" type="button" data-join>🎁 Join the List</button>
+  </nav>
+  <header class="hero container">
+    <p class="hero-overline">✦ NORTH POLE · CHRISTMAS 2026 ✦</p>
+    <h1>Who Will Rule <span>Christmas?</span></h1>
+    <p class="hero-tagline">Climb the leaderboard. Claim Santa's crown.</p>
+    <button class="cta cta-main" type="button" data-join><span aria-hidden="true">👑</span> Claim Your Rank <span aria-hidden="true">→</span></button>
   </header>
-
-  <main>
-    <div class="ticker" aria-label="SantaCrown facts"><div class="ticker-inner"><span>✦ ONE CROWN</span><span>🎄 CHRISTMAS 2026</span><span>❄️ SNOWY LEADERBOARD</span><span>👑 CLAIM YOUR RANK</span><span>🎁 NO LOGIN REQUIRED</span></div></div>
-    <section class="board-section page-width" id="leaderboard" aria-labelledby="board-title">
-      <div class="board-heading"><div><div class="eyebrow-muted">❄️ THE NORTH POLE'S FAVOURITES</div><h2 id="board-title">Santa's <em>Leaderboard</em></h2><p>Every Christmas legend starts somewhere.</p></div><span class="board-badge">SAMPLE ENTRIES</span></div>
-      <p class="sample-note" role="note">🎄 These are fictional preview profiles and amounts, not real participants or purchases.</p>
-      <div class="board-box"><div class="board-head"><span>RANK</span><span>CHRISTMAS LEGEND</span><span>LINK</span><span>TOTAL</span><span></span></div><div id="board-rows"></div></div>
-      <div class="board-footer"><div>🎁 <strong>Want to see your name up here?</strong><span>Try your target total in the festive form.</span></div><button type="button" data-join>Preview your rank <span aria-hidden="true">→</span></button></div>
+  <main class="container main-scene">
+    <section class="left-stage" aria-label="Santa's Christmas podium">
+      <div class="stage-banner" id="board-status" role="status">❄️ Santa's throne is waiting for its first legend</div>
+      <div class="stage-podium" id="podium">
+        <article class="podium-card rank-two" data-pos="2">
+          <div class="medal" aria-hidden="true">#2</div><div class="portrait" aria-hidden="true">❄️</div>
+          <h2 class="slot-name" data-slot-name="2">Silver Star</h2>
+          <p class="slot-url" data-slot-url="2">Awaiting a legend</p>
+          <p class="slot-amount" data-slot-amount="2">—</p>
+        </article>
+        <article class="podium-card rank-one" data-pos="1">
+          <div class="golden-rays" aria-hidden="true"></div><div class="medal" aria-hidden="true">👑</div><div class="portrait" aria-hidden="true">🎅</div>
+          <h2 class="slot-name" data-slot-name="1">Santa's Throne</h2>
+          <p class="slot-url" data-slot-url="1">Your name could be here</p>
+          <p class="slot-amount" data-slot-amount="1">—</p>
+        </article>
+        <article class="podium-card rank-three" data-pos="3">
+          <div class="medal" aria-hidden="true">#3</div><div class="portrait" aria-hidden="true">🦌</div>
+          <h2 class="slot-name" data-slot-name="3">Bronze Bells</h2>
+          <p class="slot-url" data-slot-url="3">Awaiting a legend</p>
+          <p class="slot-amount" data-slot-amount="3">—</p>
+        </article>
+      </div>
+      <div class="ground-gifts" aria-hidden="true"><span>🎁</span><span>🎄</span><span>🎁</span></div>
     </section>
-    <section class="how page-width" id="how" aria-labelledby="how-title"><div class="eyebrow-muted">✨ AS EASY AS OPENING A GIFT</div><h2 id="how-title">Three steps to <em>Christmas glory</em></h2><div class="steps"><article><span class="step-icon" aria-hidden="true">🔗</span><span class="step-number">01</span><h3>Drop your link</h3><p>Enter your festive name and one website or social profile.</p></article><article><span class="step-icon" aria-hidden="true">🎁</span><span class="step-number">02</span><h3>Pick your target</h3><p>Try any amount and see a sample ranking instantly.</p></article><article><span class="step-icon" aria-hidden="true">👑</span><span class="step-number">03</span><h3>Chase the crown</h3><p>Once approved and live, verified contributions decide ranking.</p></article></div></section>
-    <section class="rewards" id="rewards" aria-labelledby="reward-title"><div class="page-width"><div class="eyebrow-muted">🎅 SPECIAL CHRISTMAS HONORS</div><h2 id="reward-title">The crown comes with <em>Christmas magic.</em></h2><p class="reward-intro">A little recognition for the final Top 3 — never cash prizes or random drawings.</p><div class="reward-grid"><article><div class="reward-art">👑</div><div><span>THE GOLDEN HONOR</span><h3>#1 Santa's Crown</h3><p>A special Christmas Day homepage greeting.</p></div></article><article><div class="reward-art">⭐</div><div><span>THE SILVER HONOR</span><h3>#2 Santa's Star</h3><p>A holiday wish on the Christmas wishing tree.</p></div></article><article><div class="reward-art">🛷</div><div><span>THE BRONZE HONOR</span><h3>#3 Santa's Sleigh</h3><p>A festive greeting riding on Santa's sleigh.</p></div></article></div><p class="reward-disclaimer">Final reward terms and the cutoff time will be published before any checkout is activated.</p></div></section>
-    <section class="last-cta page-width"><div class="cta-copy"><span>🎄 ONE SPECIAL CHRISTMAS</span><h2>Does Santa's crown have <em>your name on it?</em></h2><p>Try the preview and see where you'd stand.</p></div><button class="hero-cta" type="button" data-join>🎁 Preview your name <span aria-hidden="true">→</span></button><span class="cta-gift" aria-hidden="true">🎁</span></section>
+    <section class="present-form" id="join" aria-labelledby="join-title">
+      <div class="form-snow" aria-hidden="true"></div><div class="form-bow" aria-hidden="true">🎀</div>
+      <div class="form-top">🎁 SANTA'S GIFT DESK</div>
+      <h2 id="join-title">Join the Christmas<br><em>Leaderboard</em></h2>
+      <p class="form-subtitle">Your name. Your link. Your Christmas crown.</p>
+      <form id="join-form" novalidate>
+        <div class="form-field"><label for="person">Your Christmas name</label><div class="input-wrap"><span aria-hidden="true">♙</span><input id="person" name="person" placeholder="e.g. Snow Legend" autocomplete="nickname" maxlength="36" aria-describedby="person-error" required></div><div class="field-error" id="person-error"></div></div>
+        <div class="form-field"><label for="profile-link">Your website or social link</label><div class="input-wrap"><span aria-hidden="true">🔗</span><input id="profile-link" name="profile-link" placeholder="https://x.com/yourname" inputmode="url" autocomplete="url" maxlength="240" aria-describedby="profile-link-error" required></div><div class="field-error" id="profile-link-error"></div></div>
+        <div class="form-field"><label for="amount">Your target total (USD)</label><div class="input-wrap"><span aria-hidden="true">$</span><input id="amount" name="amount" placeholder="Enter any amount" value="10" inputmode="decimal" autocomplete="off" maxlength="22" aria-describedby="amount-error price-estimate" required></div><div class="field-error" id="amount-error"></div></div>
+        <div class="quick-amounts" role="group" aria-label="Quick target amounts"><button type="button" data-amount="5">$5</button><button type="button" data-amount="19">$19</button><button type="button" data-amount="49">$49</button><button type="button" data-amount="149">$149</button></div>
+        <div class="price-estimate" id="price-estimate" aria-live="polite">🎄 Your target total: $10.00</div>
+        <div class="projected-rank" id="projected-rank" aria-live="polite"><span aria-hidden="true">👑</span><span>Projected position: <strong>#1 if the board stays empty</strong></span></div>
+        <button class="cta form-submit" type="submit">🎅 Preview My Christmas Entry <span aria-hidden="true">→</span></button>
+        <p class="checkout-state" id="checkout-state">Payments aren't open yet. Preview is free and doesn't reserve a rank.</p>
+      </form>
+    </section>
   </main>
-  <footer><div class="page-width foot-inner"><a href="#home" class="footer-brand">👑 SantaCrown</a><span>Made with ❄️ for Christmas 2026</span><div class="footerlinks"><button type="button" data-legal="rules">Rules</button><button type="button" data-legal="privacy">Privacy</button><button type="button" data-legal="refunds">Refunds</button></div></div></footer>
-  <button type="button" class="mobile-join" data-join>🎁 Preview My Christmas Rank</button>
-  <div class="modal-overlay" id="overlay" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="dialog-title"><div class="modal"><button class="close" type="button" id="close-modal" aria-label="Close preview dialog">×</button><div id="dialog-content"></div></div></div>
-  <div class="toast" id="toast" role="status" aria-live="polite"></div>
-  <noscript><p class="noscript">Please enable JavaScript to preview your SantaCrown listing.</p></noscript>
-</body>
-</html>
+  <div class="snow-horizon" aria-hidden="true"></div>
+</div>
+<section class="leaderboard-section container" id="leaderboard" aria-labelledby="lb-title">
+  <div class="snow-card">
+    <div class="board-heading"><div><span class="mini-label">🎄 LIVE CHRISTMAS RANKING</span><h2 id="lb-title">Santa's <em>Leaderboard</em></h2></div><span class="board-indicator" id="board-indicator">No paid entries</span></div>
+    <div class="board-head" aria-hidden="true"><span>#</span><span>Participant</span><span>Link</span><span>Total (USD)</span></div>
+    <div id="leaderboard-list" aria-live="polite"><div class="empty-board"><span aria-hidden="true">🎁</span><strong>The first gift hasn't arrived yet!</strong><p>When payments are enabled and verified, real participants will appear here. No invented names, totals or rankings.</p></div></div>
+    <p class="board-footnote" id="board-footnote">Only confirmed, qualifying payments will count toward rankings when this event opens.</p>
+  </div>
+</section>
+<section class="how-section container" id="how" aria-labelledby="how-title"><span class="mini-label">✨ THREE LITTLE STEPS</span><h2 id="how-title">As easy as unwrapping a gift.</h2><div class="feature-grid"><article><div class="feature-icon">🔗</div><h3>1. Add your link</h3><p>Use your website, creator page or social profile. No SantaCrown account required.</p></article><article><div class="feature-icon">🎁</div><h3>2. Choose a target</h3><p>Pick a target total. A future paid entry will show the exact payable difference before checkout.</p></article><article><div class="feature-icon">👑</div><h3>3. Chase the crown</h3><p>When the event opens, verified cumulative totals determine the leaderboard positions.</p></article></div></section>
+<section class="rewards-section container" id="rewards" aria-labelledby="rewards-title"><span class="mini-label">🎅 THE CHRISTMAS HONORS</span><h2 id="rewards-title">The Top 3 Get the Magic.</h2><div class="reward-grid"><article><span>👑</span><h3>#1 — Santa's Crown</h3><p>A featured Christmas Day message and homepage spotlight.</p></article><article><span>🌟</span><h3>#2 — Santa's Star</h3><p>A festive wish featured on Santa's North Pole Christmas tree.</p></article><article><span>🛷</span><h3>#3 — Santa's Sleigh</h3><p>Your Christmas greeting celebrated on Santa's sleigh feature.</p></article></div><p class="reward-disclaimer">Final eligibility, cutoff and exact duration of honors will be published before payments open. No cash prizes or chance-based winners.</p></section>
+<div class="last-cta container"><div><h2>🎄 The Crown Is Waiting.</h2><p>Give your Christmas name its own special moment.</p></div><button class="cta" type="button" data-join>🎁 Preview Your Entry</button></div>
+<footer class="footer"><div class="container footer-inner"><div><a class="footer-logo" href="#top">👑 SantaCrown</a><p>Christmas 2026 · An independent festive leaderboard project</p><p><a href="mailto:hello.skyorigin@gmail.com">hello.skyorigin@gmail.com</a></p></div><nav aria-label="Legal and support"><a href="/terms.html">Terms</a><a href="/privacy.html">Privacy</a><a href="/refunds.html">Refunds</a><a href="mailto:hello.skyorigin@gmail.com">Contact</a></nav></div></footer>
+<button type="button" class="sticky-join" data-join>🎁 Preview Your Christmas Entry</button>
+<div class="dialog-backdrop" id="dialog-backdrop" hidden><div class="dialog" role="dialog" aria-modal="true" aria-labelledby="dialog-title"><button class="dialog-close" id="close-dialog" type="button" aria-label="Close preview">×</button><div id="dialog-content"></div></div></div>
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+<noscript><div class="no-script">SantaCrown needs JavaScript for the interactive rank preview. The legal pages and leaderboard information remain available.</div></noscript>
+</body></html>

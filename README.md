@@ -1,31 +1,60 @@
-# SantaCrown 🎅👑 — Christmas World v3
+# SantaCrown 🎅👑 — Christmas Wonderland v4
 
-SantaCrown is an immersive, responsive Christmas-themed leaderboard **frontend preview**.
+A responsive, reference-inspired Christmas leaderboard with **real HTML/JS components** rather than an image pasted over the interface.
 
-## What's implemented
+## Status (November 14, 2026)
 
-- North Pole snowy village SVG scene, large Santa and winter aurora hero, animated snow and festive lights.
-- Responsive premium Top-3 podium with #1 golden throne and crown, #2 silver, #3 bronze.
-- Name + public URL + target total preview with instant **fictional** rank estimation.
-- Target shortcuts to beat #3 or #1 in the example data, including leaderboard challenge buttons.
-- Realistic decimal validation, URL normalization, reduced-motion preferences, keyboard-friendly modal, focus recovery.
-- Transparent preview state: no fake real participants, no billing, no fake verified ranks.
+- **Working**: navigation, animated snow, Santa & North Pole visuals, interactive Christmas entry form, USD validation, canonical public-link normalization, projected position, Christmas card download, accessible dialog, mobile layout and actual standalone legal pages.
+- **No fabricated content**: empty public leaderboard and empty throne until a **verified payment** exists. The screenshot's example names/amounts have been removed from the app.
+- **Not enabled**: Dodo checkout, webhooks and payment-backed rank updates. `/api/checkout` and `/api/webhook` intentionally return HTTP 503. No transaction occurs from the UI.
+- **Backend read scaffold**: `/api/leaderboard` returns an empty array unless `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` are configured with an approved `santacrown_leaderboard` read model. This is **read-only**; see below.
+- **Business contact**: hello.skyorigin@gmail.com.
 
-## Run
+## Run locally
 
-Static website: run `python3 -m http.server 8080` from project root, then open http://localhost:8080.
-
-Run validation tests:
-
-```bash
-node --test tests/logic.test.cjs
-python tests/ui_smoke_v3.py
+```sh
+python3 -m http.server 8000
 ```
 
-## Important: payments are OFF
+Open `http://localhost:8000`. The Vercel serverless routes work on Vercel, not Python's static server.
 
-No live Dodo integration, checkout, database, purchase webhook or live leaderboard is connected. Before payments may go live, obtain written confirmation that the exact pay-to-rank model is permitted, create secure server-side checkout sessions, verify the payment webhook, maintain idempotent transactions and refunds, guard name/link ownership, provide accurate terms/policies and replace sample data with verified totals.
+## Visual and interaction QA
 
-## Stack
+```sh
+python3 tests/visual_qa.py
+node --check app.js
+node --check lib.js
+node --check api/leaderboard.js
+```
 
-Static HTML + CSS + vanilla JavaScript + inline SVG assets. No frontend build step. Works on Vercel from GitHub.
+The visual QA test renders the real assets in-memory and tests 320, 393, 768, 1024, 1440 and 1920 pixels, form input, modal and unsafe URLs.
+
+## Legal pages
+
+- `/terms.html`
+- `/privacy.html`
+- `/refunds.html`
+
+They accurately describe the **current preview**, not a live commercial sale. Before enabling payments, add actual operator/legal identity, merchant/processor details, published rank tie-breaks, rewards duration, cutoff timestamp, refund procedures and update these pages as needed for applicable jurisdictions.
+
+## Payment launch safety gate
+
+Do not activate a public pay-to-rank competition until Dodo gives explicit written approval for the **actual** model, including custom cumulative payments, repeat contributions and Christmas Top-3 honors. Directory listings of similar sites do not establish approval.
+
+To implement payments properly, add all of the following **server-side** before enabling any checkout:
+
+1. Dodo merchant-approved product, API key, verified checkout amount, and checkout session creation on the server. Never ship API keys to the browser.
+2. Persistent payment-intent and entry records, normalized URL identity, unique order/payment identifiers, and a serializable or atomic credit ledger.
+3. Dodo HMAC signature verification on **raw webhook body**; event idempotency, amount/currency matching, and independent payment status checks.
+4. Refund/chargeback reversals and rank recalculation, concurrent contribution tests, audit logging, abuse controls and no false paid profiles.
+5. Privacy/terms/refund documents updated for **real** sale and published cutoff/time rules, then tested in Dodo's test mode and verified on Vercel.
+
+`SUPABASE_SERVICE_ROLE_KEY`, once used, must remain server-side in Vercel Environment Variables. The public UI does not collect card details.
+
+## Deployment
+
+GitHub repo: https://github.com/helloskyorigin/santacrown
+
+Vercel public URL supplied by project owner: https://santacrown.vercel.app/
+
+Vercel Git integration should redeploy on `main` pushes; check the deployment status before announcing that the live site is updated.

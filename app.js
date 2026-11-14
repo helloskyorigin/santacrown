@@ -1,237 +1,237 @@
-/* SantaCrown v3: UI preview only. No client event or click creates a payable rank.
-   In production, totals/ranks must always come from verified server-side payments. */
+/* SantaCrown: the public interface never invents participants or paid amounts.
+ * Ledger totals must come only from trusted server-side payment verification. */
 (() => {
   'use strict';
-  const { canonicalURL, parseUSD, usd, differenceCents, displayURL } = window.SantaCrownUtils;
+  const { canonicalURL, parseUSD, usd, displayURL, differenceCents } = window.SantaCrownUtils;
   const $ = selector => document.querySelector(selector);
   const $$ = selector => [...document.querySelectorAll(selector)];
-  const demoEntries = Object.freeze([
-    { name: 'Snow King', link: 'snowking.example', cents: 25000, emoji: '⛄' },
-    { name: 'Frost Elf', link: 'frostelf.example', cents: 18000, emoji: '🧝' },
-    { name: 'Gift Boss', link: 'giftboss.example', cents: 12000, emoji: '🦌' },
-    { name: 'Polar Trader', link: 'polartrader.example', cents: 11000, emoji: '🐻‍❄️' },
-    { name: 'Ginger Gain', link: 'gingergain.example', cents: 9500, emoji: '🍪' },
-    { name: 'NorthPole Hustle', link: 'northpole.example', cents: 8000, emoji: '🦌' },
-    { name: 'Merry Marketer', link: 'merry.example', cents: 6500, emoji: '🐧' },
-    { name: 'Holly Builder', link: 'holly.example', cents: 5000, emoji: '🧝' }
-  ]);
   const nameInput = $('#person');
-  const linkInput = $('#url');
+  const urlInput = $('#profile-link');
   const amountInput = $('#amount');
-  const quote = $('#quote');
-  const position = $('#preview-position');
-  const preview = $('#preview-rank');
-  const overlay = $('#overlay');
+  const quote = $('#price-estimate');
+  const projected = $('#projected-rank');
+  const dialog = $('#dialog-backdrop');
   const dialogContent = $('#dialog-content');
-  const closeButton = $('#close-modal');
-  let lastFocused = null;
-  let toastTimer = null;
-  let focusTimer = null;
-  const node = (tag, text, klass) => {
+  let entries = [];
+  let paymentsEnabled = false;
+  let focusedBeforeDialog = null;
+  let toastTimer;
+
+  const element = (tag, content, className) => {
     const el = document.createElement(tag);
-    if (text !== undefined) el.textContent = text;
-    if (klass) el.className = klass;
+    if (content !== undefined) el.textContent = content;
+    if (className) el.className = className;
     return el;
   };
-  function rankFor(cents) {
-    if (!Number.isSafeInteger(cents) || cents < 100) return null;
-    // This is only a fictional, visitor-specific preview; tie-breaks are not promised.
-    return demoEntries.filter(entry => entry.cents >= cents).length + 1;
+  function safeExternalLink(url, label, className) {
+    const a = element('a', label, className);
+    a.href = url;
+    a.target = '_blank';
+    a.rel = 'noopener noreferrer nofollow ugc';
+    return a;
   }
-  function showError(key, message) {
-    const input = key === 'person' ? nameInput : key === 'url' ? linkInput : amountInput;
-    const error = $('#' + key + '-error');
-    error.textContent = message;
-    input.setAttribute('aria-invalid', String(Boolean(message)));
+  function setError(field, text) {
+    const id = field === 'person' ? '#person' : field === 'profile-link' ? '#profile-link' : '#amount';
+    const input = $(id);
+    $('#' + field + '-error').textContent = text;
+    if (text) input.setAttribute('aria-invalid', 'true');
+    else input.removeAttribute('aria-invalid');
   }
-  function clearErrors() { ['person', 'url', 'amount'].forEach(key => showError(key, '')); }
   function toast(text) {
-    const el = $('#toast');
-    el.textContent = text;
-    el.classList.add('open');
-    clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => el.classList.remove('open'), 3300);
+    const bar = $('#toast');
+    bar.textContent = text;
+    bar.classList.add('show');
+    window.clearTimeout(toastTimer);
+    toastTimer = window.setTimeout(() => bar.classList.remove('show'), 3300);
   }
-  function goJoin(focusName = true) {
-    const area = $('#join');
-    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    area.scrollIntoView({ behavior: reduce ? 'instant' : 'smooth', block: 'center' });
-    clearTimeout(focusTimer);
-    if (focusName) focusTimer = setTimeout(() => nameInput.focus({ preventScroll: true }), reduce ? 0 : 430);
+  function goJoin() {
+    $('#join').scrollIntoView({ block: 'center', behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+    window.setTimeout(() => nameInput.focus({ preventScroll: true }), window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 450);
   }
-  $$('[data-join]').forEach(btn => btn.addEventListener('click', () => goJoin()));
-
-  // Hide the mobile CTA while the entry form is visible or in use.
-  const mobileCTA = $('.mobile-join');
-  let joinInView = false;
-  function syncSticky() {
-    mobileCTA.classList.toggle('hidden', joinInView || $('#join').contains(document.activeElement) || overlay.classList.contains('open'));
-  }
+  $$('[data-join]').forEach(button => button.addEventListener('click', goJoin));
+  const sticky = $('.sticky-join');
   if ('IntersectionObserver' in window) {
-    new IntersectionObserver(entries => {
-      joinInView = entries.some(e => e.isIntersecting);
-      syncSticky();
-    }, { threshold: 0.12 }).observe($('#join'));
+    const observer = new IntersectionObserver(states => sticky.classList.toggle('hidden', states.some(s => s.isIntersecting)), { threshold: 0.1 });
+    observer.observe($('#join'));
   }
-  $('#entry-form').addEventListener('focusin', syncSticky);
-  $('#entry-form').addEventListener('focusout', () => requestAnimationFrame(syncSticky));
-
-  function updatePreview() {
+  function currentListing() {
+    const normalized = canonicalURL(urlInput.value);
+    return normalized ? entries.find(e => e.link === normalized) : undefined;
+  }
+  function projection(cents, existing) {
+    if (cents === null) return null;
+    const rest = entries.filter(e => e.link !== existing?.link);
+    return 1 + rest.filter(e => e.total_cents >= cents).length;
+  }
+  function updateEstimate() {
     const cents = parseUSD(amountInput.value);
-    const label = $('.preview-description strong');
-    const helper = $('.preview-description span');
-    const glyph = $('.preview-icon');
+    const listing = currentListing();
+    const existing = listing?.total_cents || 0;
     if (cents === null) {
-      label.textContent = 'Choose your spot';
-      helper.textContent = 'Enter $1 or more to see a sample ranking.';
-      glyph.textContent = '🎄';
-      position.textContent = '—';
-      quote.textContent = '🎁 Enter a target total to preview your spot.';
+      quote.textContent = '🎁 Enter a valid amount of at least $1.';
+      projected.replaceChildren(element('span', '❄️'), element('span', 'Your future position will appear here.'));
     } else {
-      const rank = rankFor(cents);
-      label.textContent = rank === 1 ? 'You would take the crown!' : rank <= 3 ? 'You would reach the podium!' : 'Your example leaderboard spot';
-      helper.textContent = rank === 1 ? 'Ahead of the fictional Snow King.' : rank <= 3 ? 'A top-three position in the demo.' : `Beat fictional #3 with ${usd(12100)}.`;
-      glyph.textContent = rank === 1 ? '👑' : rank <= 3 ? '🏅' : '🎄';
-      position.textContent = '#' + rank;
-      quote.textContent = `❄️ Demo target ${usd(cents)} · Only a preview, no charge or reserved rank.`;
+      const payable = differenceCents(cents, existing);
+      if (listing) {
+        quote.textContent = payable === null
+          ? `🎄 Current ${usd(existing)} · Increase your target by $1+.`
+          : `🎄 Payable increase ${usd(payable)} · Projected #${projection(cents, listing)}`;
+      } else {
+        quote.textContent = `🎄 Target ${usd(cents)} · Projected position #${projection(cents, listing)}`;
+      }
+      const rank = projection(cents, listing);
+      const display = element('span');
+      display.append('Projected position: ', element('strong', '#' + rank));
+      projected.replaceChildren(element('span', rank === 1 ? '👑' : '❄️'), display);
     }
-    $$('.quick-amounts button').forEach(btn => btn.classList.toggle('selected', parseUSD(btn.dataset.amount) === cents));
+    $$('.quick-amounts button').forEach(button => button.setAttribute('aria-pressed', String(parseUSD(button.dataset.amount) === cents)));
   }
-  amountInput.addEventListener('input', () => { updatePreview(); showError('amount', ''); });
-  linkInput.addEventListener('input', () => showError('url', ''));
-  nameInput.addEventListener('input', () => showError('person', ''));
-  $$('.quick-amounts button').forEach(btn => btn.addEventListener('click', () => {
-    amountInput.value = btn.dataset.amount;
-    updatePreview(); showError('amount', '');
+  amountInput.addEventListener('input', () => { setError('amount', ''); updateEstimate(); });
+  nameInput.addEventListener('input', () => setError('person', ''));
+  urlInput.addEventListener('input', () => { setError('profile-link', ''); updateEstimate(); });
+  $$('.quick-amounts button').forEach(button => button.addEventListener('click', () => {
+    amountInput.value = button.dataset.amount;
+    updateEstimate();
   }));
-  $$('[data-target]').forEach(btn => btn.addEventListener('click', () => {
-    const targetCents = btn.dataset.target === 'gold' ? 25100 : 12100;
-    amountInput.value = (targetCents / 100).toFixed(2).replace(/\.00$/, '');
-    updatePreview();
-    showError('amount', '');
-    amountInput.focus({ preventScroll: true });
-  }));
-  $$('[data-challenge]').forEach(btn => btn.addEventListener('click', () => {
-    amountInput.value = String(Number(btn.dataset.challenge) + 1);
-    updatePreview(); showError('amount', '');
-    goJoin(false);
-    focusTimer = setTimeout(() => amountInput.focus({ preventScroll: true }), window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 430);
-  }));
-
-  const board = $('#board-rows');
-  demoEntries.slice(3).forEach((entry, index) => {
-    const row = node('div', undefined, 'board-row');
-    const rank = node('span', '#' + (index + 4), 'r-num');
-    const who = node('div', undefined, 'r-person');
-    const info = node('div', undefined, 'r-details');
-    info.append(node('strong', entry.name), node('span', entry.link, 'r-mobile-link'));
-    who.append(node('span', entry.emoji, 'av'), info);
-    const link = node('span', entry.link, 'r-url'); // deliberate: fictional links are not clickable
-    const amount = node('span', usd(entry.cents), 'r-amount');
-    const beat = node('button', 'Beat this ↗', 'row-boost');
-    beat.type = 'button';
-    beat.setAttribute('aria-label', `Try a target higher than ${entry.name}'s fictional total ${usd(entry.cents)}`);
-    beat.addEventListener('click', () => {
-      amountInput.value = String(entry.cents / 100 + 1);
-      updatePreview();
-      goJoin(false);
-      focusTimer = setTimeout(() => amountInput.focus({ preventScroll: true }), 420);
-    });
-    row.append(rank, who, link, amount, beat);
-    board.append(row);
-  });
-
-  function showModal() {
-    lastFocused = document.activeElement;
-    overlay.classList.add('open');
-    overlay.setAttribute('aria-hidden', 'false');
+  function openDialog() {
+    focusedBeforeDialog = document.activeElement;
+    dialog.hidden = false;
     document.body.classList.add('modal-open');
-    closeButton.focus(); syncSticky();
+    $('#close-dialog').focus();
   }
-  function closeModal() {
-    overlay.classList.remove('open');
-    overlay.setAttribute('aria-hidden', 'true');
+  function closeDialog() {
+    dialog.hidden = true;
     document.body.classList.remove('modal-open');
-    if (lastFocused?.isConnected) lastFocused.focus();
-    syncSticky();
+    if (focusedBeforeDialog?.isConnected) focusedBeforeDialog.focus();
   }
-  closeButton.addEventListener('click', closeModal);
-  overlay.addEventListener('click', e => { if (e.target === overlay) closeModal(); });
+  $('#close-dialog').addEventListener('click', closeDialog);
+  dialog.addEventListener('click', e => { if (e.target === dialog) closeDialog(); });
   document.addEventListener('keydown', e => {
-    if (!overlay.classList.contains('open')) return;
-    if (e.key === 'Escape') { e.preventDefault(); closeModal(); return; }
+    if (dialog.hidden) return;
+    if (e.key === 'Escape') { e.preventDefault(); closeDialog(); return; }
     if (e.key !== 'Tab') return;
-    const controls = $$(`#overlay button:not([disabled]), #overlay a[href], #overlay input:not([disabled])`)
-      .filter(el => el.getClientRects().length > 0);
-    if (!controls.length) return;
-    const first = controls[0], last = controls.at(-1);
-    if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
-    else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+    const focusables = [...dialog.querySelectorAll('a[href],button:not([disabled]),input:not([disabled])')].filter(el => el.getClientRects().length);
+    if (!focusables.length) return;
+    if (e.shiftKey && document.activeElement === focusables[0]) { e.preventDefault(); focusables.at(-1).focus(); }
+    else if (!e.shiftKey && document.activeElement === focusables.at(-1)) { e.preventDefault(); focusables[0].focus(); }
   });
-
-  $('#entry-form').addEventListener('submit', e => {
-    e.preventDefault();
-    clearErrors();
-    const name = nameInput.value.trim();
-    const url = canonicalURL(linkInput.value);
-    const cents = parseUSD(amountInput.value);
-    let failed = null;
-    if (name.length < 2 || name.length > 36 || /[\u0000-\u001f\u007f]/.test(name)) {
-      showError('person', 'Use a Christmas name of 2–36 characters.'); failed ||= nameInput;
-    }
-    if (!url) { showError('url', 'Enter a valid public website or social link.'); failed ||= linkInput; }
-    if (cents === null || differenceCents(cents, 0) === null) {
-      showError('amount', 'Enter $1 or more, using at most two decimal places.'); failed ||= amountInput;
-    }
-    if (failed) { failed.focus(); return; }
-
-    dialogContent.replaceChildren();
-    const heading = node('h2', '🎅 Your Christmas preview'); heading.id = 'dialog-title';
-    dialogContent.append(heading);
-    dialogContent.append(node('p', 'Santa says hello! Here is your sample listing. Nothing is published, reserved or paid for.'));
-    const card = node('div', undefined, 'profile-preview');
-    card.append(node('strong', '👑 ' + name));
-    const a = node('a', displayURL(url)); a.href = url; a.rel = 'noopener noreferrer nofollow'; a.target = '_blank';
-    card.append(a, node('b', usd(cents) + ' target total'), node('div', 'Illustrative position #' + rankFor(cents), 'dialog-rank'));
-    dialogContent.append(card);
-    dialogContent.append(node('p', 'This is a design preview based on fictional rankings. Dodo checkout is not enabled; no money is collected.'));
-    const copy = node('button', 'Copy my preview', 'modal-action');
-    copy.type = 'button';
-    copy.addEventListener('click', async () => {
-      const text = `🎄 SantaCrown preview: ${name} · ${displayURL(url)} · ${usd(cents)} target · Illustrative rank #${rankFor(cents)}`;
-      try { await navigator.clipboard.writeText(text); toast('Preview text copied 🎁'); }
-      catch { toast('Clipboard unavailable on this device'); }
-    });
-    const close = node('button', 'Close', 'modal-action secondary'); close.type = 'button'; close.addEventListener('click', closeModal);
-    dialogContent.append(copy, close);
-    showModal();
-  });
-  const legal = {
-    rules: ['🎄 SantaCrown preview rules', 'This is an interactive design preview. All public ranks and names are fictional. No payment processing, actual ranking, cash prizes, lottery or random rewards are live. The proposed model ranks verified cumulative contributions associated with a normalized public URL. A public URL alone does not prove account ownership; profile changes and final honors would require separate verification. Actual ranking rules, cutoff time, tie-breaking and cancellation treatment must be published before launch.'],
-    privacy: ['🔐 Privacy in this preview', 'Name, website URL and target amount are processed only in your browser and are not sent to the SantaCrown server or saved. Google Fonts may load and collect ordinary connection information. A complete privacy notice is required before real purchases or account data collection begin.'],
-    refunds: ['↩️ Refund status', 'No payments are enabled in this preview. Therefore no purchases or refunds can take place. A proper refunds and disputes policy is required before payment checkout is activated.']
-  };
-  $$('[data-legal]').forEach(btn => btn.addEventListener('click', () => {
-    const [title, text] = legal[btn.dataset.legal];
-    dialogContent.replaceChildren();
-    const h = node('h2', title); h.id = 'dialog-title';
-    dialogContent.append(h, node('p', text));
-    showModal();
-  }));
-
-  if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-    const flakes = $('#flakes');
-    const total = window.matchMedia('(max-width: 650px)').matches ? 24 : 52;
-    for (let i = 0; i < total; i++) {
-      const flake = node('span', i % 4 === 0 ? '✧' : '❄', 'flake');
-      flake.style.setProperty('--x', Math.round(Math.random() * 100) + '%');
-      flake.style.setProperty('--size', (8 + Math.round(Math.random() * 13)) + 'px');
-      flake.style.setProperty('--speed', (12 + Math.round(Math.random() * 19)) + 's');
-      flake.style.setProperty('--delay', (-Math.round(Math.random() * 29)) + 's');
-      flake.style.setProperty('--drift', (Math.round(Math.random() * 140) - 70) + 'px');
-      flakes.append(flake);
-    }
-    document.addEventListener('visibilitychange', () => document.body.classList.toggle('snow-paused', document.hidden));
+  function generateCard(name, link, cents, rank) {
+    const escape = t => String(t).replace(/[&<>"']/g, x => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&apos;' }[x]));
+    // SVG text values are escaped; this is a personalized, non-payment Christmas greeting card.
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630"><defs><linearGradient id="b" x2="1" y2="1"><stop stop-color="#092348"/><stop offset=".6" stop-color="#175593"/><stop offset="1" stop-color="#5aa0ca"/></linearGradient></defs><rect width="1200" height="630" fill="url(#b)"/><circle cx="995" cy="122" r="85" fill="#ffebaa" opacity=".85"/><text x="80" y="104" font-size="56" fill="#ffe2a0" font-family="Georgia" font-weight="bold">👑 SantaCrown</text><text x="80" y="215" font-size="62" fill="white" font-family="Georgia" font-weight="bold">My Christmas Crown Preview</text><text x="80" y="316" font-size="55" fill="#ffcf66" font-family="Georgia" font-weight="bold">${escape(name.slice(0,36))}</text><text x="80" y="390" font-size="29" fill="#dff3ff" font-family="Arial">${escape(displayURL(link).slice(0,60))}</text><text x="80" y="467" font-size="32" fill="white" font-family="Arial">Target ${escape(usd(cents))}  •  Projected #${rank}</text><text x="80" y="559" font-size="23" fill="#ffe7ba" font-family="Arial">Preview only · no payment, public rank or reservation</text><text x="988" y="501" font-size="105">🎅</text></svg>`;
+    const blob = new Blob([svg], {type:'image/svg+xml;charset=utf-8'});
+    const u = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = u; a.download = 'santacrown-christmas-preview.svg';
+    document.body.append(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(u), 2000);
   }
-  updatePreview();
+  $('#join-form').addEventListener('submit', e => {
+    e.preventDefault();
+    ['person','profile-link','amount'].forEach(k => setError(k, ''));
+    const name = nameInput.value.trim();
+    const link = canonicalURL(urlInput.value);
+    const cents = parseUSD(amountInput.value);
+    let firstInvalid = null;
+    if (name.length < 2 || name.length > 36 || /[\x00-\x1f\x7f]/.test(name)) {
+      setError('person', 'Enter a name between 2 and 36 characters.'); firstInvalid ||= nameInput;
+    }
+    if (!link) { setError('profile-link', 'Enter a valid public website or social link.'); firstInvalid ||= urlInput; }
+    if (cents === null) { setError('amount', 'Enter at least $1, with no more than two decimal places.'); firstInvalid ||= amountInput; }
+    const listing = currentListing();
+    if (cents !== null && listing && differenceCents(cents, listing.total_cents) === null) {
+      setError('amount', 'Increase the current listing total by at least $1.'); firstInvalid ||= amountInput;
+    }
+    if (firstInvalid) { firstInvalid.focus(); return; }
+    const rank = projection(cents, listing);
+    dialogContent.replaceChildren();
+    const header = element('h2', '🎄 Your Christmas entry preview'); header.id = 'dialog-title';
+    dialogContent.append(header, element('p', 'Here is how your Christmas card can look. This does not create a public entry or charge you.'));
+    const card = element('div', undefined, 'preview-card');
+    card.append(element('strong', '👑 ' + name), safeExternalLink(link, displayURL(link), 'preview-link'), element('div', usd(cents) + ' target · Projected #' + rank, 'preview-amount'));
+    dialogContent.append(card, element('p', 'Payment collection has not opened. Rankings will only update after verified payments when the service is approved and launched.'));
+    const actions = element('div', undefined, 'modal-actions');
+    const download = element('button', '🎁 Download Christmas Card');
+    download.type = 'button';
+    download.addEventListener('click', () => generateCard(name, link, cents, rank));
+    const close = element('button', 'Close', 'secondary');
+    close.type = 'button'; close.addEventListener('click', closeDialog);
+    actions.append(download, close); dialogContent.append(actions);
+    openDialog();
+  });
+  function insertRank(slot, entry) {
+    const card = $(`.podium-card[data-pos="${slot}"]`);
+    const title = card.querySelector('.slot-name');
+    const url = card.querySelector('.slot-url');
+    const amount = card.querySelector('.slot-amount');
+    title.textContent = entry.name;
+    url.replaceChildren(safeExternalLink(entry.link, displayURL(entry.link)));
+    amount.textContent = usd(entry.total_cents);
+  }
+  function renderLeaderboard() {
+    const list = $('#leaderboard-list');
+    if (!entries.length) {
+      const empty = element('div', undefined, 'empty-board');
+      const icon = element('span', '🎁'); icon.setAttribute('aria-hidden', 'true');
+      empty.append(icon, element('strong', "The first gift hasn't arrived yet!"), element('p', 'When payments are enabled and verified, real participants will appear here. No invented names, totals or rankings.'));
+      list.replaceChildren(empty);
+      const originals = [
+        {name: "Santa's Throne", link: 'Your name could be here', portrait: '🎅'},
+        {name: 'Silver Star', link: 'Awaiting a legend', portrait: '❄️'},
+        {name: 'Bronze Bells', link: 'Awaiting a legend', portrait: '🦌'}
+      ];
+      originals.forEach((item, i) => {
+        const card = $(`.podium-card[data-pos="${i+1}"]`);
+        card.querySelector('.slot-name').textContent = item.name;
+        card.querySelector('.slot-url').textContent = item.link;
+        card.querySelector('.slot-amount').textContent = '—';
+        card.querySelector('.portrait').textContent = item.portrait;
+      });
+      $('#board-indicator').textContent = 'No paid entries';
+      $('#board-status').textContent = "❄️ Santa's throne is waiting for its first legend";
+      return;
+    }
+    list.replaceChildren();
+    const ranked = entries.slice(0, 100);
+    ranked.forEach((entry, i) => {
+      const row = element('div', undefined, 'board-row');
+      row.append(element('span', '#' + (i + 1), 'rank-num'), element('div', entry.name, 'leader-name'), safeExternalLink(entry.link, displayURL(entry.link), 'leader-url'), element('span', usd(entry.total_cents), 'leader-total'));
+      list.append(row);
+    });
+    entries.slice(0,3).forEach((entry,i)=>insertRank(i+1,entry));
+    $('#board-indicator').textContent = entries.length + (entries.length === 1 ? ' verified entry' : ' verified entries');
+    $('#board-status').textContent = '👑 Current throne holder: ' + entries[0].name;
+  }
+  async function fetchLeaderboard() {
+    try {
+      const r = await fetch('/api/leaderboard', {headers: {'Accept':'application/json'}, cache:'no-store'});
+      if (!r.ok) throw new Error('Leaderboard is unavailable');
+      const data = await r.json();
+      if (!Array.isArray(data.entries)) throw new Error('Unexpected response');
+      entries = data.entries.filter(e => typeof e.name === 'string' && typeof e.link === 'string' && Number.isSafeInteger(e.total_cents) && e.total_cents >= 100 && canonicalURL(e.link) === e.link).sort((a,b) => b.total_cents-a.total_cents);
+      paymentsEnabled = Boolean(data.paymentsEnabled);
+      renderLeaderboard();
+      updateEstimate();
+      // Payment will remain disabled until full merchant acceptance, secure checkout and webhook are operational.
+    } catch (error) {
+      console.info('SantaCrown leaderboard is not configured; no fictional entries are displayed.');
+    }
+  }
+  const snow = $('#snowfall');
+  if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    const total = window.matchMedia('(max-width: 680px)').matches ? 20 : 46;
+    for (let i=0;i<total;i++) {
+      const flake = element('span', i%5===0 ? '✧' : '❄', 'flake');
+      flake.style.setProperty('--x', (Math.random()*100).toFixed(2)+'%');
+      flake.style.setProperty('--size', (8+Math.random()*10).toFixed(1)+'px');
+      flake.style.setProperty('--duration', (12+Math.random()*17).toFixed(1)+'s');
+      flake.style.setProperty('--delay', (-Math.random()*23).toFixed(1)+'s');
+      flake.style.setProperty('--drift', ((Math.random()-.5)*130).toFixed(0)+'px');
+      snow.append(flake);
+    }
+    document.addEventListener('visibilitychange',()=>document.body.classList.toggle('snow-paused',document.hidden));
+  }
+  updateEstimate();
+  fetchLeaderboard();
+  if (location.protocol !== 'file:') window.setInterval(fetchLeaderboard, 60000);
 })();
