@@ -14,6 +14,12 @@
   const dialogContent = $('#dialog-content');
   let entries = [];
   let paymentsEnabled = false;
+  let boardAvailable = false;
+  let checkoutBusy = false;
+  let knownEntry = null;
+  let lookupTimer = null;
+  let lookupVersion = 0;
+  const formSubmit = document.querySelector('.form-submit');
   let focusedBeforeDialog = null;
   let toastTimer;
 
@@ -56,12 +62,15 @@
   }
   function currentListing() {
     const normalized = canonicalURL(urlInput.value);
-    return normalized ? entries.find(e => e.link === normalized) : undefined;
+    return normalized ? (entries.find(e => e.link === normalized) || (knownEntry?.link === normalized ? knownEntry : undefined)) : undefined;
   }
   function projection(cents, existing) {
     if (cents === null) return null;
     const rest = entries.filter(e => e.link !== existing?.link);
-    return 1 + rest.filter(e => e.total_cents >= cents).length;
+    // Existing ties are ordered by first-payment timestamp, so only count
+    // a same-total competitor if it ranks before this existing entry.
+    return 1 + rest.filter(e => e.total_cents > cents ||
+      (e.total_cents === cents && (!existing || e.rank < existing.rank))).length;
   }
   function updateEstimate() {
     const cents = parseUSD(amountInput.value);
@@ -75,20 +84,38 @@
       if (listing) {
         quote.textContent = payable === null
           ? `🎄 Current ${usd(existing)} · Increase your target by $1+.`
-          : `🎄 Payable increase ${usd(payable)} · Projected #${projection(cents, listing)}`;
+          : `🎄 Current ${usd(existing)} · Pay ${usd(payable)} extra · ${listing.name} keeps the display name`;
       } else {
-        quote.textContent = `🎄 Target ${usd(cents)} · Projected position #${projection(cents, listing)}`;
+        quote.textContent = `🎄 Amount to pay ${usd(cents)} · Ranking is based on verified totals`;
       }
       const rank = projection(cents, listing);
       const display = element('span');
-      display.append('Projected position: ', element('strong', '#' + rank));
+      display.append('Estimated position: ', element('strong', rank > 100 ? 'outside top 100' : '#' + rank));
       projected.replaceChildren(element('span', rank === 1 ? '👑' : '❄️'), display);
     }
     $$('.quick-amounts button').forEach(button => button.setAttribute('aria-pressed', String(parseUSD(button.dataset.amount) === cents)));
   }
   amountInput.addEventListener('input', () => { setError('amount', ''); updateEstimate(); });
   nameInput.addEventListener('input', () => setError('person', ''));
-  urlInput.addEventListener('input', () => { setError('profile-link', ''); updateEstimate(); });
+  urlInput.addEventListener('input', () => {
+    setError('profile-link', '');
+    knownEntry = null;
+    updateEstimate();
+    window.clearTimeout(lookupTimer);
+    const checked = canonicalURL(urlInput.value);
+    const version = ++lookupVersion;
+    if (!checked || !boardAvailable) return;
+    lookupTimer = window.setTimeout(async () => {
+      try {
+        const r = await fetch('/api/listing?link='+encodeURIComponent(checked),{cache:'no-store'});
+        if (!r.ok) return;
+        const data = await r.json();
+        if(version !== lookupVersion || canonicalURL(urlInput.value) !== checked)return;
+        knownEntry = data.entry || null;
+        updateEstimate();
+      } catch { /* Always compute the final payable amount on the server. */ }
+    }, 350);
+  });
   $$('.quick-amounts button').forEach(button => button.addEventListener('click', () => {
     amountInput.value = button.dataset.amount;
     updateEstimate();
@@ -126,7 +153,7 @@
     document.body.append(a); a.click(); a.remove();
     setTimeout(() => URL.revokeObjectURL(u), 2000);
   }
-  $('#join-form').addEventListener('submit', e => {
+  $('#join-form').addEventListener('submit', async e => {
     e.preventDefault();
     ['person','profile-link','amount'].forEach(k => setError(k, ''));
     const name = nameInput.value.trim();
@@ -143,6 +170,45 @@
       setError('amount', 'Increase the current listing total by at least $1.'); firstInvalid ||= amountInput;
     }
     if (firstInvalid) { firstInvalid.focus(); return; }
+    if (paymentsEnabled && boardAvailable) {
+      if (checkoutBusy) return;
+      checkoutBusy = true;
+      formSubmit.disabled = true;
+      formSubmit.textContent = '❄️ Preparing secure checkout…';
+      try {
+        const response = await fetch('/api/checkout', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+          credentials: 'same-origin',
+          body: JSON.stringify({ name, link, target_amount: amountInput.value.trim() })
+        });
+        const data = await response.json();
+        if (!response.ok || !data.checkoutUrl) {
+          if (response.status === 409) {
+            await fetchLeaderboard();
+            setError('amount', 'Another payment changed the total. Pick a new target.');
+          }
+          throw new Error(data.message || 'Checkout is not available. No payment has been initiated.');
+        }
+        const expectedDue = differenceCents(cents, listing?.total_cents || 0);
+        if (expectedDue !== data.chargeCents) {
+          await fetchLeaderboard();
+          setError('amount', 'The balance changed while you were joining. Check the updated amount and try again.');
+          return;
+        }
+        const destination = new URL(data.checkoutUrl);
+        if (destination.protocol !== 'https:' ||
+            !destination.hostname.endsWith('.dodopayments.com')) throw Error('Unexpected checkout destination');
+        window.location.assign(destination.toString());
+      } catch (error) {
+        toast(error.message || 'Secure checkout could not open.');
+      } finally {
+        checkoutBusy = false;
+        formSubmit.disabled = false;
+        updateCheckoutUI();
+      }
+      return;
+    }
     const rank = projection(cents, listing);
     dialogContent.replaceChildren();
     const header = element('h2', '🎄 Your Christmas entry preview'); header.id = 'dialog-title';
@@ -159,6 +225,20 @@
     actions.append(download, close); dialogContent.append(actions);
     openDialog();
   });
+  function updateCheckoutUI() {
+    if (checkoutBusy) return;
+    formSubmit.replaceChildren(document.createTextNode(
+      paymentsEnabled && boardAvailable ? '🎁 Continue to Secure Payment →' : '🎅 Preview My Christmas Entry →'
+    ));
+    const label = $('#checkout-state');
+    label.textContent = paymentsEnabled && boardAvailable
+      ? 'Your exact payable amount is confirmed server-side. Only verified payments change rankings.'
+      : 'Payments are not open. Preview is free and does not reserve a rank.';
+    $$('[data-join]').forEach(b => {
+      if (b.classList.contains('sticky-join'))
+        b.textContent = paymentsEnabled && boardAvailable ? '🎁 Join SantaCrown' : '🎁 Preview Your Christmas Entry';
+    });
+  }
   function insertRank(slot, entry) {
     const card = $(`.podium-card[data-pos="${slot}"]`);
     const title = card.querySelector('.slot-name');
@@ -198,7 +278,20 @@
       row.append(element('span', '#' + (i + 1), 'rank-num'), element('div', entry.name, 'leader-name'), safeExternalLink(entry.link, displayURL(entry.link), 'leader-url'), element('span', usd(entry.total_cents), 'leader-total'));
       list.append(row);
     });
-    entries.slice(0,3).forEach((entry,i)=>insertRank(i+1,entry));
+    [1,2,3].forEach(i => {
+      const entry = entries[i-1];
+      if (entry) insertRank(i,entry);
+      else {
+        const card = $(`.podium-card[data-pos="${i}"]`);
+        const defaults = [null,{name: "Santa's Throne", label:'Awaiting a legend',portrait:'🎅'},
+          {name:'Silver Star',label:'Awaiting a legend',portrait:'❄️'},
+          {name:'Bronze Bells',label:'Awaiting a legend',portrait:'🦌'}][i];
+        card.querySelector('.slot-name').textContent = defaults.name;
+        card.querySelector('.slot-url').textContent = defaults.label;
+        card.querySelector('.slot-amount').textContent = '—';
+        card.querySelector('.portrait').textContent = defaults.portrait;
+      }
+    });
     $('#board-indicator').textContent = entries.length + (entries.length === 1 ? ' verified entry' : ' verified entries');
     $('#board-status').textContent = '👑 Current throne holder: ' + entries[0].name;
   }
@@ -208,13 +301,29 @@
       if (!r.ok) throw new Error('Leaderboard is unavailable');
       const data = await r.json();
       if (!Array.isArray(data.entries)) throw new Error('Unexpected response');
-      entries = data.entries.filter(e => typeof e.name === 'string' && typeof e.link === 'string' && Number.isSafeInteger(e.total_cents) && e.total_cents >= 100 && canonicalURL(e.link) === e.link).sort((a,b) => b.total_cents-a.total_cents);
-      paymentsEnabled = Boolean(data.paymentsEnabled);
+      boardAvailable = data.status === 'ready';
+      entries = data.entries.filter(e => typeof e.name === 'string' && typeof e.link === 'string' &&
+        Number.isSafeInteger(e.total_cents) && e.total_cents >= 100 &&
+        Number.isSafeInteger(e.rank) && canonicalURL(e.link) === e.link);
+      // Server's SQL row_number() determines final ordering, including stable ties.
+      entries.sort((a,b) => a.rank-b.rank);
+      paymentsEnabled = boardAvailable && Boolean(data.paymentsEnabled);
       renderLeaderboard();
+      if (!boardAvailable) {
+        $('#board-indicator').textContent = 'Preparing launch';
+        $('#board-status').textContent = '❄️ SantaCrown will open after the secure leaderboard is ready';
+      }
       updateEstimate();
-      // Payment will remain disabled until full merchant acceptance, secure checkout and webhook are operational.
+      updateCheckoutUI();
     } catch (error) {
-      console.info('SantaCrown leaderboard is not configured; no fictional entries are displayed.');
+      boardAvailable = false; paymentsEnabled = false;
+      $('#board-indicator').textContent = 'Temporarily unavailable';
+      $('#board-status').textContent = '❄️ Live ranking temporarily unavailable';
+      const box = element('div',undefined,'empty-board');
+      box.append(element('strong','Leaderboard temporarily unavailable'),
+        element('p','Please refresh later. We are not displaying unverified rankings.'));
+      $('#leaderboard-list').replaceChildren(box);
+      updateCheckoutUI();
     }
   }
   const snow = $('#snowfall');
@@ -232,6 +341,7 @@
     document.addEventListener('visibilitychange',()=>document.body.classList.toggle('snow-paused',document.hidden));
   }
   updateEstimate();
+  updateCheckoutUI();
   fetchLeaderboard();
   if (location.protocol !== 'file:') window.setInterval(fetchLeaderboard, 60000);
 })();

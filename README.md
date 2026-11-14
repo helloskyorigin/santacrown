@@ -1,60 +1,59 @@
-# SantaCrown 🎅👑 — Christmas Wonderland v4
+# SantaCrown 🎅👑 — Payment-backed Leaderboard Engine (v5)
 
-A responsive, reference-inspired Christmas leaderboard with **real HTML/JS components** rather than an image pasted over the interface.
+A no-login, Christmas-themed public leaderboard, powered by verified USD contributions to public links. **Current deployment is NOT taking payments.** The payment-backed API and Supabase migration are implemented but not connected to a live merchant/database account. This is a deliberate safety feature.
 
-## Status (November 14, 2026)
+**Core ranking rule**: one normalized public link = one listing. First *verified* purchase determines its display name. All subsequent verified purchases for that link increase its balance. Board sorts by **net verified USD cents, descending**. Tie order is **earliest confirmed listing creation**, then canonical URL (stable). **Refunds reduce credit proportionately** and **open/lost disputes temporarily/permanently exclude disputed payments**. A won dispute can restore that payment's credit. Pending/failed/duplicate webhooks do not create rank.
 
-- **Working**: navigation, animated snow, Santa & North Pole visuals, interactive Christmas entry form, USD validation, canonical public-link normalization, projected position, Christmas card download, accessible dialog, mobile layout and actual standalone legal pages.
-- **No fabricated content**: empty public leaderboard and empty throne until a **verified payment** exists. The screenshot's example names/amounts have been removed from the app.
-- **Not enabled**: Dodo checkout, webhooks and payment-backed rank updates. `/api/checkout` and `/api/webhook` intentionally return HTTP 503. No transaction occurs from the UI.
-- **Backend read scaffold**: `/api/leaderboard` returns an empty array unless `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` are configured with an approved `santacrown_leaderboard` read model. This is **read-only**; see below.
-- **Business contact**: hello.skyorigin@gmail.com.
+## What is implemented
 
-## Run locally
+- Snowy responsive UI with a real-data-only podium, leaderboard, and Name + Link + Target Total form.
+- `GET /api/leaderboard` — public read-only ranked list (Top 100) from actual verified ledger, no fabricated entries.
+- `GET /api/listing?link=...` — the existing total for any public URL, including outside Top 100.
+- `POST /api/checkout` — fail-closed until enabled; validates input and origin, computes the exact **payable difference server-side**, persists a pending intent, then creates a one-time Dodo checkout session using a *Pay What You Want* product and server-owned `product_cart[].amount` (in cents).
+- `POST /api/webhook` — raw signed HMAC verification with a five-minute timestamp window, provider payment detail verification, and single-transaction Postgres RPC for payment success, refunds and disputes.
+- `GET /api/status?intent=...` + `thanks.html` — shows **webhook-confirmed** payment status, not untrusted redirect query parameters.
+- `db/001_santacrown.sql` — tables, unique constraints, append-only ledgers, audited read model, transaction RPCs, RLS and grants.
+- Safe URL normalization, cent-based math, server-side rate limiting and guarded launch flags.
+- Existing Terms, Privacy and Refund pages with business contact **hello.skyorigin@gmail.com**.
+
+## Why payment accounting is safe by design
+
+**Never** use an in-memory map or `total = oldTotal + amount` in JavaScript. Money lives as an immutable row (`sc_payments.payment_id` unique, `sc_payments.intent_id` unique), and the leaderboard reads net balances from SQL. Refund IDs and webhook event IDs are unique. All mutations use Postgres transactions; duplicates cannot credit twice. SQL reads are consistent for simultaneous payments.
+
+When the same URL starts two checkouts at the same time, both successful payments increase the cumulative total. The final rank is based on the actual amounts paid, not a stale target or redirect. A checkout quotes the difference between the user's target and the **then-current confirmed total**; if another purchase changes it while the browser is open, the user must accept the refreshed quote.
+
+**Tax**: rank credit uses the verified product amount in USD cents, excluding extra processor taxes. If the customer is charged tax, Dodo's `total_amount` is greater than or equal to the contribution amount. Refunds proportionally reverse credited product value. The payment record must be `succeeded`, with USD charge currency; adaptive-currency conversions to other billing currencies will fail closed and need proper FX reconciliation before enabling them.
+
+## Setup (merchant/admin action required)
+
+1. Create a *new dedicated Supabase project*. Paste `db/001_santacrown.sql` into **Supabase Dashboard → SQL Editor** and execute. Verify that `public.santacrown_leaderboard` starts empty. Review/enable Supabase's REST Data API for the exposed `public` schema; **only `service_role` is granted access**. No direct anonymous ledger access is permitted.
+2. In Vercel project's **Settings → Environment Variables**, add `SUPABASE_URL` and **`SUPABASE_SECRET_KEY`** (or legacy `SUPABASE_SERVICE_ROLE_KEY`), server-only. Never use a public/anon key for server ledger writes. Set `SANTACROWN_RATE_SALT` to a long random value (server-only).
+3. Obtain Dodo's written confirmation that SantaCrown's **exact** paid rank + cumulative contributions + Top-3 Christmas honors business model is eligible. Comparable sites do not prove merchant eligibility. Create a Dodo *one-time Pay What You Want* product in USD with a $1 minimum and no coupons; obtain its `pdt_...` product ID.
+4. Set Dodo server-side test mode keys and `DODO_PAYMENTS_ENVIRONMENT=test_mode`. Configure webhook endpoint **`https://santacrown.vercel.app/api/webhook`** in **Dodo Developer → Webhooks** and subscribe to `payment.succeeded`, `refund.succeeded`, `dispute.opened`, `dispute.won`, and `dispute.lost`. Copy the endpoint's *own* signing key into the Vercel secret `DODO_PAYMENTS_WEBHOOK_KEY`. Test and live mode webhook secrets are different.
+5. Check real Dodo **test-mode** payload shapes/amounts and signed webhook replay using the merchant dashboard. Confirm: amount matches price, currency USD, `metadata.sc_intent_id` survives checkout into Payment Detail, refunds contain `refund_id`, `payment_id`, `amount`, and disputes contain `dispute_id`, `payment_id`. Reconcile anything different *before launch*. The signed webhook must use raw bytes, not `JSON.stringify(req.body)`.
+6. **Keep `SANTACROWN_CHECKOUT_ENABLED=false` initially**. Once test-mode Dodo and DB checks pass, change `DODO_PAYMENTS_APPROVED=true` and `SANTACROWN_CHECKOUT_ENABLED=true` **only on a safe test/preview environment**. The checkout route will start producing *test* checkout URLs. No live card will be charged.
+7. Before real launch, finish public commercial terms: legal merchant identity, eligibility, exact cutoff date/time + time zone, tie-breaks, durations of Top 3 rewards, refunds, chargebacks, appeal process, and rights to profile names/links. Merchant must specifically approve the live usage. Set `DODO_PAYMENTS_ENVIRONMENT=live_mode`, upload live Dodo keys, and finally `SANTACROWN_LIVE_CONFIRMED=true`. The API does nothing until these explicit flags and keys exist.
+
+Do **not** paste secret keys into ChatGPT or GitHub. Configure them directly in Vercel.
+
+### Environment flags
+
+See `.env.example`. `SANTACROWN_CHECKOUT_ENABLED` + `DODO_PAYMENTS_APPROVED` + configured DB/Dodo keys must all be true. `SANTACROWN_LIVE_CONFIRMED=true` is an extra second switch for real charges. If absent, checkout returns 503.
+
+### Run checks
 
 ```sh
-python3 -m http.server 8000
+npm test
+python3 tests/frontend_backend_smoke.py
 ```
 
-Open `http://localhost:8000`. The Vercel serverless routes work on Vercel, not Python's static server.
+`tests/frontend_backend_smoke.py` runs in an isolated browser with inline assets and stubbed API responses; it does not connect to Dodo or Supabase. A real Supabase SQL transaction integration test and Dodo sandbox payment test still require your project credentials and merchant test-mode environment; test results do not imply those have run.
 
-## Visual and interaction QA
+## Remaining launch checks
 
-```sh
-python3 tests/visual_qa.py
-node --check app.js
-node --check lib.js
-node --check api/leaderboard.js
-```
+- Database migration **has not been executed on an actual Supabase project** in this session.
+- Dodo merchant/API configuration, signed test webhook delivery and checkout **have not been exercised against a real provider**.
+- A public paid-launch should not take place until business approval and the full legal terms are complete.
+- Verify Vercel project deployment and `https://santacrown.vercel.app/api/leaderboard` after GitHub auto-deploy; repository push alone is not proof that the live deployment updated.
 
-The visual QA test renders the real assets in-memory and tests 320, 393, 768, 1024, 1440 and 1920 pixels, form input, modal and unsafe URLs.
-
-## Legal pages
-
-- `/terms.html`
-- `/privacy.html`
-- `/refunds.html`
-
-They accurately describe the **current preview**, not a live commercial sale. Before enabling payments, add actual operator/legal identity, merchant/processor details, published rank tie-breaks, rewards duration, cutoff timestamp, refund procedures and update these pages as needed for applicable jurisdictions.
-
-## Payment launch safety gate
-
-Do not activate a public pay-to-rank competition until Dodo gives explicit written approval for the **actual** model, including custom cumulative payments, repeat contributions and Christmas Top-3 honors. Directory listings of similar sites do not establish approval.
-
-To implement payments properly, add all of the following **server-side** before enabling any checkout:
-
-1. Dodo merchant-approved product, API key, verified checkout amount, and checkout session creation on the server. Never ship API keys to the browser.
-2. Persistent payment-intent and entry records, normalized URL identity, unique order/payment identifiers, and a serializable or atomic credit ledger.
-3. Dodo HMAC signature verification on **raw webhook body**; event idempotency, amount/currency matching, and independent payment status checks.
-4. Refund/chargeback reversals and rank recalculation, concurrent contribution tests, audit logging, abuse controls and no false paid profiles.
-5. Privacy/terms/refund documents updated for **real** sale and published cutoff/time rules, then tested in Dodo's test mode and verified on Vercel.
-
-`SUPABASE_SERVICE_ROLE_KEY`, once used, must remain server-side in Vercel Environment Variables. The public UI does not collect card details.
-
-## Deployment
-
-GitHub repo: https://github.com/helloskyorigin/santacrown
-
-Vercel public URL supplied by project owner: https://santacrown.vercel.app/
-
-Vercel Git integration should redeploy on `main` pushes; check the deployment status before announcing that the live site is updated.
+Documentation: [Dodo Checkout Sessions](https://docs.dodopayments.com/api-reference/checkout-sessions/create), [Dodo Webhooks](https://docs.dodopayments.com/developer-resources/webhooks), [Supabase Security](https://supabase.com/docs/guides/api/securing-your-api).

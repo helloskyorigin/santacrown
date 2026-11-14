@@ -1,0 +1,9 @@
+{
+  "name":"santacrown",
+  "private":true,
+  "version":"0.5.0",
+  "description":"SantaCrown paid-leaderboard ledger, API and festive frontend",
+  "type":"commonjs",
+  "scripts":{"test":"node --test tests/*.test.cjs"},
+  "engines":{"node":">=20"}
+}
