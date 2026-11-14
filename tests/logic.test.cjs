@@ -15,7 +15,7 @@ test('canonicalizes the same public profile to the same identity', () => {
 
 test('rejects dangerous or invalid links', () => {
   for (const value of ['javascript:alert(1)', 'data:text/html,hi', 'https://example.com@evil.com',
-    'http://localhost/a', 'http://192.168.1.1', 'http://[::1]', 'https://foo.local',
+    'http://localhost/a', 'http://192.168.1.1', 'http://[::1]', 'https://foo.local', 'https://brand.example', 'https://brand.invalid',
     'https://example.com:8080', 'https://a', 'https://good.com bad.com', 'https://good.com\n.evil.com']) {
     assert.equal(canonicalURL(value), null, value);
   }
