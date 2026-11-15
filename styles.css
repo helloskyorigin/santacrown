@@ -169,3 +169,7 @@ body{background:linear-gradient(180deg,#edf8ff 0%,#e7f5ff 45%,#f5fbff 100%)}
 .hero-rule{display:flex;margin:0 auto 12px;max-width:545px}
 .hero .cta-main{display:inline-flex;align-items:center;justify-content:center;gap:8px}
 @media(max-width:680px){.hero-rule{max-width:340px}}
+
+/* Make the final-sale rule visible in the purchase consent, not buried in a policy. */
+.checkout-consent strong{color:#882338;font-weight:800}
+.checkout-consent a{text-decoration:underline;text-underline-offset:2px}

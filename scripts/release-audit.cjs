@@ -6,19 +6,23 @@ const ROOT=path.join(__dirname,'..');
 const read=f=>fs.readFileSync(path.join(ROOT,f),'utf8');
 const expected=[
   'index.html','styles.css','app.js','lib.js','thanks.html','thanks.js',
-  'terms.html','privacy.html','refunds.html','404.html','robots.txt','sitemap.xml',
+  'terms.html','privacy.html','refunds.html','support.html','404.html','robots.txt','sitemap.xml',
   'api/checkout.js','api/webhook.js','api/leaderboard.js','api/listing.js','api/status.js','api/health.js',
   'db/001_santacrown.sql','db/002_visibility.sql','db/003_reconciliation.sql','assets/santa-cut.webp','assets/north-pole.webp'
 ];
 for(const item of expected)assert(fs.existsSync(path.join(ROOT,item)),`Missing: ${item}`);
-for(const policy of ['terms','privacy','refunds']) {
+for(const policy of ['terms','privacy','refunds','support']) {
   const html=read(policy+'.html');
   assert(html.includes('hello.skyorigin@gmail.com'),`Missing contact in ${policy}`);
   assert(html.includes('pre-launch')||html.includes('Pre-launch'),`Missing preview disclaimer in ${policy}`);
-  for(const cross of ['terms.html','privacy.html','refunds.html'])assert(html.includes(cross),`Broken legal navigation ${policy} → ${cross}`);
+  for(const cross of ['terms.html','privacy.html','refunds.html','support.html'])assert(html.includes(cross),`Broken legal navigation ${policy} → ${cross}`);
 }
 assert(read('index.html').includes('id="refresh-board"'));
 assert(read('index.html').includes('id="checkout-consent"'));
+assert(read('index.html').includes('completed purchases are generally non-refundable'));
+assert(read('refunds.html').includes('No-Refund Policy'));
+assert(read('support.html').includes('hello.skyorigin@gmail.com'));
+assert(read('sitemap.xml').includes('support.html'));
 assert(read('app.js').includes("cache:'no-store'"));
 assert(read('api/checkout.js').includes('terms_accepted'));
 assert(read('db/001_santacrown.sql').includes('sc_record_success'));

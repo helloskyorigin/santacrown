@@ -1,3 +1,27 @@
 :root{--ink:#24354b;--red:#b9253a;--serif:'Fraunces',Georgia,serif}*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:linear-gradient(180deg,#0e2d5d 0 265px,#f0f8ff 265px);color:var(--ink);font:15px/1.7 'DM Sans',system-ui,sans-serif}a{color:#266da6;text-underline-offset:3px}a:hover{color:#9d2845}a:focus-visible{outline:3px solid #ecc66d;outline-offset:3px}.wrap{max-width:930px;margin:0 auto;padding:0 22px}.nav{display:flex;align-items:center;justify-content:space-between;min-height:75px;gap:18px}.logo{font:800 26px var(--serif);text-decoration:none;color:white!important}.logo span{color:#ffd16c}.back{color:#fff!important;text-decoration:none;font-weight:800;font-size:13px}.back:hover{text-decoration:underline}.hero{padding:30px 0 75px;color:white}.hero p{color:#c7def5;font-size:12px;font-weight:800;letter-spacing:1.4px;text-transform:uppercase}.hero h1{font:800 clamp(38px,6vw,59px)/1.1 var(--serif);margin:8px 0}.paper{background:white;border:1px solid #dce9f3;border-radius:23px;box-shadow:0 18px 39px #143f6824;padding:clamp(25px,5vw,52px);position:relative;margin:-46px auto 70px}.paper:before{content:'❄️';position:absolute;right:30px;top:13px;font-size:33px}.paper .effective{display:inline-block;color:#7a8495;background:#f2f8ff;padding:6px 12px;border-radius:99px;font-size:12px;font-weight:800;margin-bottom:20px}.paper h2{font:800 24px var(--serif);color:var(--red);margin:30px 0 8px}.paper p,.paper li{color:#506780;margin:9px 0}.paper ul{padding-left:23px}.notice{background:#fff7e6;border:1px solid #f2d7a1;border-radius:13px;color:#825b24;padding:13px 16px;font-weight:700}.email{display:inline-flex;align-items:center;background:#f2f8ff;border-radius:10px;padding:9px 15px;margin-top:4px;font-weight:800}.footer{padding:26px 0;background:#d8eafa;color:#5d7188;font-size:12px}.footer .wrap{display:flex;gap:20px;justify-content:space-between;flex-wrap:wrap}.footer a{margin-left:12px} @media(max-width:560px){.hero{padding-bottom:65px}.paper{margin-top:-45px}.paper:before{font-size:21px;top:9px;right:13px}.logo{font-size:22px}}
 
 .policy-nav{display:flex;gap:20px;flex-wrap:wrap;margin-top:25px;font-weight:800}.paper section{scroll-margin-top:20px}.paper p{overflow-wrap:anywhere}
+
+/* SantaCrown legal pages: accessible, trustworthy, winter-white policy presentation. */
+.skip-policy{position:absolute;top:-100px;left:16px;z-index:99;background:#fff;color:#8d2033;padding:10px 16px;border-radius:9px}.skip-policy:focus{top:10px}
+.hero-sub{color:#f4e7dd!important;font-size:14px!important;font-weight:500!important;letter-spacing:0!important;text-transform:none!important;max-width:620px}
+.policy-meta{display:flex;justify-content:space-between;gap:9px;flex-wrap:wrap;align-items:center;margin:0 0 16px}
+.policy-meta .effective{margin-bottom:0}
+.policy-status{background:#fef2dd;color:#865522;border:1px solid #eed9ad;padding:6px 11px;border-radius:999px;font-size:12px;font-weight:800}
+.policy-notice{background:#f1f7ff;border:1px solid #c8def5;padding:15px 18px;border-radius:13px;margin-bottom:16px}
+.policy-notice strong{color:#315c85}.policy-notice p{margin:5px 0 0;font-size:13px}
+.quick-read{border-radius:16px;background:linear-gradient(135deg,#fff7eb,#fffdf9);border:1px solid #efdab5;padding:20px 22px}
+.quick-read>span,.policy-contact>span{font-size:11px;font-weight:800;letter-spacing:1.2px;color:#a32735}
+.quick-read p{font-size:16px;line-height:1.65;color:#493f42;margin:9px 0 0}
+.policy-contents{background:#f3f9ff;border-radius:16px;border:1px solid #d9e9f8;margin:20px 0 26px;padding:18px}
+.policy-contents strong{display:block;color:#344e6c;margin-bottom:9px}
+.policy-contents div{display:flex;gap:8px;flex-wrap:wrap}
+.policy-contents a{text-decoration:none;font-weight:700;font-size:12px;padding:5px 10px;background:#fff;border:1px solid #d7e7f5;border-radius:9px}
+.paper section{border-top:1px solid #e9eff5;margin-top:25px;padding-top:2px}.paper section h2{font-size:22px;line-height:1.3}
+.paper section p,.paper section li{line-height:1.8}.paper strong{color:#34465b}
+.refund-examples{background:#fcf8f6;padding:13px 18px;border-left:4px solid #c82f40;border-radius:9px}
+.policy-contact{margin-top:34px;background:linear-gradient(140deg,#ecf6ff,#fff7ed);padding:23px;border-radius:17px;border:1px solid #dae6ee}
+.policy-contact h2{margin-top:4px!important}.policy-contact p{font-size:13px}
+.policy-nav{border-top:1px solid #e7edf5;padding-top:18px}
+.footer nav{display:flex;gap:13px;flex-wrap:wrap}.footer a{margin-left:0}
+@media(max-width:560px){.nav{align-items:center}.back{font-size:11px;max-width:135px;text-align:right;line-height:1.35}.paper{padding:22px 17px}.quick-read{padding:16px}.policy-status{font-size:11px}.policy-contents div{gap:6px}.paper section h2{font-size:20px}}
